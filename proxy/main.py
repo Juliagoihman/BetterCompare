@@ -99,3 +99,44 @@ def route_request(query: str):
         "selected_vertical": "unknown",
         "reason": "No clear vertical could be selected."
     }
+@app.get("/feedback")
+def get_feedback():
+    feedback = []
+
+    for vertical_name, tools in VERTICAL_TOOLS.items():
+        for tool in tools:
+            if "name" not in tool:
+                feedback.append({
+                    "vertical": vertical_name,
+                    "status": "rejected",
+                    "reason": "Tool is missing a name.",
+                    "suggestion": "Add a unique tool name."
+                })
+
+            elif "description" not in tool:
+                feedback.append({
+                    "vertical": vertical_name,
+                    "tool": tool.get("name"),
+                    "status": "needs_adaptation",
+                    "reason": "Tool is missing a description.",
+                    "suggestion": "Add a clear description so ChatGPT can understand when to use it."
+                })
+
+            elif "input_schema" not in tool:
+                feedback.append({
+                    "vertical": vertical_name,
+                    "tool": tool.get("name"),
+                    "status": "rejected",
+                    "reason": "Tool is missing an input_schema.",
+                    "suggestion": "Add a valid JSON schema for tool inputs."
+                })
+
+            else:
+                feedback.append({
+                    "vertical": vertical_name,
+                    "tool": tool.get("name"),
+                    "status": "accepted",
+                    "reason": "Tool passes basic conformance checks."
+                })
+
+    return feedback
