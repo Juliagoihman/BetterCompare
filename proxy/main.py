@@ -1,9 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 
 app = FastAPI(title="BetterCompare Proxy")
 
-# In der echten Version wären das separate MCP-Server.
-# Für den Anfang simulieren wir sie direkt im Proxy.
 VERTICAL_TOOLS = {
     "internet": [
         {
@@ -54,22 +52,38 @@ VERTICAL_TOOLS = {
 def home():
     return {
         "name": "BetterCompare",
-        "message": "Proxy is running"
+        "message": "Proxy is running",
+        "available_endpoints": [
+            "/tools",
+            "/tools?vertical=internet",
+            "/route?query=Ich brauche schnelles Internet",
+            "/feedback",
+            "/version"
+        ]
     }
 
 
 @app.get("/tools")
-def get_tools():
+def get_tools(vertical: str | None = Query(default=None)):
     aggregated_tools = []
 
     for vertical_name, tools in VERTICAL_TOOLS.items():
+        if vertical and vertical != vertical_name:
+            continue
+
         for tool in tools:
             tool_with_vertical = tool.copy()
             tool_with_vertical["vertical"] = vertical_name
             aggregated_tools.append(tool_with_vertical)
 
-    return aggregated_tools
-    @app.get("/route")
+    return {
+        "mode": "full" if vertical is None else "vertical-test",
+        "selected_vertical": vertical,
+        "tools": aggregated_tools
+    }
+
+
+@app.get("/route")
 def route_request(query: str):
     query_lower = query.lower()
 
@@ -99,6 +113,8 @@ def route_request(query: str):
         "selected_vertical": "unknown",
         "reason": "No clear vertical could be selected."
     }
+
+
 @app.get("/feedback")
 def get_feedback():
     feedback = []
@@ -138,7 +154,11 @@ def get_feedback():
                     "status": "accepted",
                     "reason": "Tool passes basic conformance checks."
                 })
-                @app.get("/version")
+
+    return feedback
+
+
+@app.get("/version")
 def get_version():
     return {
         "proxy": {
@@ -161,5 +181,3 @@ def get_version():
             }
         }
     }
-
-    return feedback
