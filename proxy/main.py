@@ -69,3 +69,33 @@ def get_tools():
             aggregated_tools.append(tool_with_vertical)
 
     return aggregated_tools
+    @app.get("/route")
+def route_request(query: str):
+    query_lower = query.lower()
+
+    if "internet" in query_lower or "wlan" in query_lower or "dsl" in query_lower:
+        return {
+            "query": query,
+            "selected_vertical": "internet",
+            "reason": "The query looks like an internet provider request."
+        }
+
+    if "reise" in query_lower or "flug" in query_lower or "hotel" in query_lower or "urlaub" in query_lower:
+        return {
+            "query": query,
+            "selected_vertical": "travel",
+            "reason": "The query looks like a travel request."
+        }
+
+    if "handy" in query_lower or "mobile" in query_lower or "sim" in query_lower:
+        return {
+            "query": query,
+            "selected_vertical": "mobile",
+            "reason": "The query looks like a mobile plan request."
+        }
+
+    return {
+        "query": query,
+        "selected_vertical": "unknown",
+        "reason": "No clear vertical could be selected."
+    }
