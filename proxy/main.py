@@ -138,5 +138,28 @@ def get_feedback():
                     "status": "accepted",
                     "reason": "Tool passes basic conformance checks."
                 })
+                @app.get("/version")
+def get_version():
+    return {
+        "proxy": {
+            "name": "BetterCompare Proxy",
+            "version": "1.0.0",
+            "policy": "The proxy keeps the ChatGPT-facing interface stable. Vertical changes are validated before exposure."
+        },
+        "verticals": {
+            "internet": {
+                "version": "1.0.0",
+                "status": "compatible"
+            },
+            "travel": {
+                "version": "1.0.0",
+                "status": "compatible"
+            },
+            "mobile": {
+                "version": "1.0.0",
+                "status": "compatible"
+            }
+        }
+    }
 
     return feedback
