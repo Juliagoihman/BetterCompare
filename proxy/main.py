@@ -1,4 +1,6 @@
 from fastapi import FastAPI, Query
+from pydantic import BaseModel
+from typing import Dict, Any
 
 app = FastAPI(title="BetterCompare Proxy")
 
@@ -180,4 +182,63 @@ def get_version():
                 "status": "compatible"
             }
         }
+    }
+from pydantic import BaseModel
+from typing import Dict, Any
+
+
+class ToolExecutionRequest(BaseModel):
+    tool_name: str
+    arguments: Dict[str, Any]
+
+
+@app.post("/execute")
+def execute_tool(request: ToolExecutionRequest):
+    if request.tool_name == "compare_internet_offers":
+        return {
+            "tool": request.tool_name,
+            "vertical": "internet",
+            "result": [
+                {
+                    "provider": "SpeedyNet",
+                    "price_per_month": "29.99€",
+                    "speed": "250 Mbit/s"
+                },
+                {
+                    "provider": "FiberFox",
+                    "price_per_month": "34.99€",
+                    "speed": "500 Mbit/s"
+                }
+            ]
+        }
+
+    if request.tool_name == "search_travel_offers":
+        return {
+            "tool": request.tool_name,
+            "vertical": "travel",
+            "result": [
+                {
+                    "destination": request.arguments.get("destination", "Mallorca"),
+                    "price": "499€",
+                    "type": "package holiday"
+                }
+            ]
+        }
+
+    if request.tool_name == "compare_mobile_plans":
+        return {
+            "tool": request.tool_name,
+            "vertical": "mobile",
+            "result": [
+                {
+                    "provider": "MobileMax",
+                    "data": "20 GB",
+                    "price_per_month": "14.99€"
+                }
+            ]
+        }
+
+    return {
+        "error": "Unknown tool",
+        "tool": request.tool_name
     }
