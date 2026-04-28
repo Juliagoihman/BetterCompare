@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BetterCompare MCP Proxy</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0f0f0f; color: #e0e0e0; font-family: system-ui, sans-serif; padding: 2rem; }
+  h1 { font-size: 18px; font-weight: 500; margin-bottom: 4px; }
+  .meta { font-size: 12px; color: #666; margin-bottom: 2rem; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 1rem; }
+  .card h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: #666; margin-bottom: .75rem; }
+  .metric-val { font-size: 28px; font-weight: 500; line-height: 1; }
+  .metric-sub { font-size: 11px; color: #666; margin-top: 4px; }
+  .green { color: #4ade80; }
+  .amber { color: #fb923c; }
+  .red { color: #f87171; }
+  .badge { font-size: 10px; padding: 2px 7px; border-radius: 20px; font-weight: 500; }
+  .badge-ok { background: #14291f; color: #4ade80; }
+  .badge-warn { background: #2a1f0f; color: #fb923c; }
+  .badge-err { background: #2a0f0f; color: #f87171; }
+  .row { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid #222; font-size: 13px; }
+  .row:last-child { border-bottom: none; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot-green { background: #4ade80; }
+  .dot-amber { background: #fb923c; }
+  .dot-red { background: #f87171; }
+  .muted { color: #666; font-size: 11px; }
+  .ml-auto { margin-left: auto; }
+  .timeline { display: flex; height: 6px; border-radius: 3px; overflow: hidden; gap: 1px; margin-top: 6px; }
+  .tl-ok { background: #4ade80; }
+  .tl-adapted { background: #fb923c; }
+  .tl-blocked { background: #f87171; }
+  .trace-item { padding: 8px 0; border-bottom: 1px solid #222; cursor: pointer; }
+  .trace-item:last-child { border-bottom: none; }
+  .trace-top { display: flex; align-items: center; gap: 8px; font-size: 12px; margin-bottom: 5px; }
+  .trace-bar { display: flex; height: 5px; border-radius: 3px; overflow: hidden; gap: 1px; }
+  .tb-parse { background: #818cf8; }
+  .tb-vert { background: #fb923c; }
+  .tb-ok { background: #4ade80; }
+  .tb-err { background: #f87171; }
+  .expand { display: none; font-size: 11px; color: #666; margin-top: 5px; }
+  .rule-row { padding: 6px 0; border-bottom: 1px solid #222; font-size: 12px; }
+  .rule-row:last-child { border-bottom: none; }
+  .rule-id { font-family: monospace; font-size: 10px; background: #222; padding: 1px 5px; border-radius: 3px; color: #999; }
+  .rule-fix { font-size: 11px; color: #666; margin-top: 2px; }
+  .filter-row { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .filter-btn { font-size: 11px; padding: 3px 10px; border-radius: 20px; border: 1px solid #333; background: #1a1a1a; color: #666; cursor: pointer; }
+  .filter-btn.active { background: #2a2a2a; color: #e0e0e0; border-color: #555; }
+  .cat-row { display: grid; grid-template-columns: 1fr 60px 70px 60px; gap: 8px; align-items: center; padding: 5px 0; border-bottom: 1px solid #222; font-size: 12px; }
+  .cat-row:last-child { border-bottom: none; }
+  .mono { font-family: monospace; font-size: 11px; }
+  .score-pill { font-size: 10px; font-weight: 500; padding: 1px 6px; border-radius: 10px; text-align: center; }
+  .sp-high { background: #14291f; color: #4ade80; }
+  .sp-mid { background: #2a1f0f; color: #fb923c; }
+  .sp-low { background: #2a0f0f; color: #f87171; }
+  .refresh-btn { font-size: 11px; padding: 4px 12px; border-radius: 6px; border: 1px solid #333; background: #1a1a1a; color: #999; cursor: pointer; float: right; }
+  .refresh-btn:hover { background: #2a2a2a; color: #e0e0e0; }
+</style>
+</head>
+<body>
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem">
+  <div>
+    <h1>BetterCompare MCP Proxy</h1>
+    <div class="meta">proxy v1.0.0 · <span id="live-time"></span></div>
+  </div>
+  <button class="refresh-btn" onclick="loadAll()">↻ Refresh</button>
+</div>
+
+<!-- Metrics -->
+<div class="grid-4" id="metrics">
+  <div class="card"><div class="metric-val" id="m-tools">—</div><div class="metric-sub">total tools</div></div>
+  <div class="card"><div class="metric-val green" id="m-score">—</div><div class="metric-sub">conformance score</div></div>
+  <div class="card"><div class="metric-val" id="m-calls">—</div><div class="metric-sub">total calls</div></div>
+  <div class="card"><div class="metric-val amber" id="m-errors">—</div><div class="metric-sub">error rate</div></div>
+</div>
+
+<div class="grid-2">
+  <!-- Vertical health -->
+  <div class="card">
+    <h2>Vertical health</h2>
+    <div id="vertical-list">Loading...</div>
+  </div>
+
+  <!-- Conformance violations -->
+  <div class="card">
+    <h2>Conformance violations</h2>
+    <div id="violations-list">Loading...</div>
+  </div>
+</div>
+
+<!-- Traces -->
+<div class="card" style="margin-bottom:16px">
+  <h2>Live trace timeline</h2>
+  <div id="trace-list">Loading...</div>
+</div>
+
+<div class="grid-2">
+  <!-- Tool catalog -->
+  <div class="card">
+    <h2>Tool catalog</h2>
+    <div class="filter-row" id="cat-filters">
+      <button class="filter-btn active" onclick="filterCat('all',this)">All</button>
+    </div>
+    <div id="catalog-list">Loading...</div>
+  </div>
+
+  <!-- Stats -->
+  <div class="card">
+    <h2>Top tools by usage</h2>
+    <div id="top-tools">Loading...</div>
+  </div>
+</div>
+
+<script>
+let catalogData = [];
+
+async function fetchJSON(url) {
+  try {
+    const r = await fetch(url);
+    return await r.json();
+  } catch(e) {
+    return null;
+  }
+}
+
+async function loadAll() {
+  const [feedback, traces, stats] = await Promise.all([
+    fetchJSON('/feedback'),
+    fetchJSON('/traces'),
+    fetchJSON('/stats')
+  ]);
+
+  if (feedback) renderFeedback(feedback);
+  if (traces) renderTraces(traces);
+  if (stats) renderStats(stats);
+}
+
+function renderFeedback(f) {
+  // Metrics
+  document.getElementById('m-tools').textContent = f.total || 0;
+  document.getElementById('m-score').textContent =
+    (f.overall_score || 0) + '%';
+
+  // Vertical health
+  const vlist = document.getElementById('vertical-list');
+  const verticals = f.by_vertical || {};
+  vlist.innerHTML = Object.entries(verticals).map(([name, v]) => {
+    const dotClass = v.score >= 80 ? 'dot-green' :
+                     v.score >= 60 ? 'dot-amber' : 'dot-red';
+    return `<div class="row">
+      <div class="dot ${dotClass}"></div>
+      <div style="flex:1">
+        <div style="font-weight:500">${name}</div>
+        <div class="muted">${v.total} tools</div>
+      </div>
+      <div class="muted">${v.accepted} ok · ${v.adapted} adapted · ${v.blocked} blocked</div>
+      <div class="ml-auto">
+        <span class="score-pill ${v.score>=80?'sp-high':v.score>=60?'sp-mid':'sp-low'}">
+          ${v.score}
+        </span>
+      </div>
+    </div>`;
+  }).join('') || '<div class="muted">No data yet — call /mcp first</div>';
+
+  // Violations
+  const viol = document.getElementById('violations-list');
+  const allViolations = [];
+  Object.entries(verticals).forEach(([vname, v]) => {
+    (v.tools || []).forEach(t => {
+      (t.violations || []).forEach(vi => {
+        allViolations.push({...vi, tool: t.qualified_name});
+      });
+    });
+  });
+
+  viol.innerHTML = allViolations.slice(0, 6).map(v => `
+    <div class="rule-row">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+        <span class="rule-id">${v.rule_id}</span>
+        <span class="badge ${v.severity==='ERROR'?'badge-err':'badge-warn'}">${v.severity}</span>
+      </div>
+      <div style="font-size:12px">${v.reason}</div>
+      <div class="rule-fix">→ ${v.fix}</div>
+    </div>`).join('') || '<div class="muted">No violations — great job!</div>';
+
+  // Catalog
+  catalogData = [];
+  Object.entries(verticals).forEach(([vname, v]) => {
+    (v.tools || []).forEach(t => catalogData.push({...t, vname}));
+  });
+  renderCatalog('all');
+
+  // Filters
+  const filters = document.getElementById('cat-filters');
+  const existing = Array.from(filters.querySelectorAll('.filter-btn'))
+    .map(b => b.textContent.trim());
+  Object.keys(verticals).forEach(vname => {
+    if (!existing.includes(vname)) {
+      const btn = document.createElement('button');
+      btn.className = 'filter-btn';
+      btn.textContent = vname;
+      btn.onclick = () => filterCat(vname, btn);
+      filters.appendChild(btn);
+    }
+  });
+}
+
+function renderCatalog(filter) {
+  const list = document.getElementById('catalog-list');
+  const items = filter === 'all' ? catalogData :
+    catalogData.filter(t => t.vname === filter);
+  list.innerHTML = items.map(t => `
+    <div class="cat-row">
+      <div class="mono">${t.qualified_name}</div>
+      <div style="color:#666;font-size:11px">${t.status}</div>
+      <div><span class="badge ${t.status==='accepted'?'badge-ok':t.status==='adapted'?'badge-warn':'badge-err'}">${t.status}</span></div>
+      <div><span class="score-pill ${t.score>=80?'sp-high':t.score>=60?'sp-mid':'sp-low'}">${t.score}</span></div>
+    </div>`).join('') || '<div class="muted">No tools</div>';
+}
+
+function filterCat(f, btn) {
+  document.querySelectorAll('#cat-filters .filter-btn')
+    .forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCatalog(f);
+}
+
+function renderTraces(traces) {
+  const list = document.getElementById('trace-list');
+  if (!traces.length) {
+    list.innerHTML = '<div class="muted">No traces yet — call /mcp first</div>';
+    return;
+  }
+  list.innerHTML = traces.slice(0, 8).map((t, i) => `
+    <div class="trace-item" onclick="toggleExpand(${i})">
+      <div class="trace-top">
+        <span style="font-family:monospace;color:#666;font-size:10px">${t.correlation_id}</span>
+        <span style="font-weight:500">${t.tool_name}</span>
+        <span class="badge ${t.status==='ok'?'badge-ok':'badge-err'}">${t.status}</span>
+        <span class="muted ml-auto">${t.total_ms} ms</span>
+      </div>
+      <div class="trace-bar">
+        <div class="tb-parse" style="width:5%"></div>
+        <div class="tb-vert ${t.status==='ok'?'tb-ok':'tb-err'}" style="width:90%"></div>
+        <div class="tb-parse" style="width:5%"></div>
+      </div>
+      <div class="expand" id="exp_${i}">
+        ${(t.steps||[]).map(s =>
+          `<div style="display:flex;justify-content:space-between;padding:2px 0">
+            <span>${s.name}</span><span>${s.at_ms} ms</span>
+          </div>`).join('')}
+        ${t.error ? `<div style="color:#f87171;margin-top:4px">${t.error}</div>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+function toggleExpand(i) {
+  const el = document.getElementById('exp_' + i);
+  el.style.display = el.style.display === 'block' ? 'none' : 'block';
+}
+
+function renderStats(s) {
+  document.getElementById('m-calls').textContent =
+    (s.total_calls || 0).toLocaleString();
+  const errRate = s.total_calls > 0 ?
+    ((s.total_errors / s.total_calls) * 100).toFixed(1) : '0.0';
+  document.getElementById('m-errors').textContent = errRate + '%';
+
+  const top = document.getElementById('top-tools');
+  const tools = s.top_tools || [];
+  top.innerHTML = tools.length ? tools.map(([name, count]) => `
+    <div class="row">
+      <span class="mono" style="flex:1">${name}</span>
+      <span class="muted">${count} calls</span>
+    </div>`).join('') :
+    '<div class="muted">No calls yet</div>';
+}
+
+function tick() {
+  document.getElementById('live-time').textContent =
+    new Date().toLocaleTimeString();
+}
+
+// Init
+loadAll();
+tick();
+setInterval(tick, 1000);
+setInterval(loadAll, 10000);
+</script>
+</body>
+</html>
