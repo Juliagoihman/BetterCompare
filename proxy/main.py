@@ -1,244 +1,152 @@
-from fastapi import FastAPI, Query
-from pydantic import BaseModel
-from typing import Dict, Any
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+import httpx
+import uuid
+from datetime import datetime
 
-app = FastAPI(title="BetterCompare Proxy")
+from conformance.engine import review_tool
+from monitoring.tracer import tracer
+from monitoring.stats import stats
+from feedback.store import feedback_store
 
-VERTICAL_TOOLS = {
-    "internet": [
-        {
-            "name": "compare_internet_offers",
-            "description": "Compare internet offers for a given address.",
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "address": {"type": "string"},
-                    "min_speed": {"type": "integer"}
-                },
-                "required": ["address"]
-            }
-        }
-    ],
-    "travel": [
-        {
-            "name": "search_travel_offers",
-            "description": "Search travel and vacation offers.",
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "destination": {"type": "string"},
-                    "budget": {"type": "integer"}
-                },
-                "required": ["destination"]
-            }
-        }
-    ],
-    "mobile": [
-        {
-            "name": "compare_mobile_plans",
-            "description": "Compare mobile phone plans.",
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "data_gb": {"type": "integer"},
-                    "max_price": {"type": "integer"}
-                },
-                "required": ["data_gb"]
-            }
-        }
-    ]
+app = FastAPI(title="BetterCompare MCP Proxy")
+
+# Vertical registry — maps name to URL
+VERTICALS = {
+    "internet":  "http://localhost:8801",
+    "mobile":    "http://localhost:8802",
+    "travel":    "http://localhost:8803",
 }
 
+# ─── MCP Endpoint ────────────────────────────────────────────────────────────
 
-@app.get("/")
-def home():
+@app.post("/mcp")
+async def mcp(request: Request):
+    body = await request.json()
+    method = body.get("method")
+    req_id = body.get("id", 1)
+    vertical_filter = request.query_params.get("vertical")
+
+    if method == "initialize":
+        return _initialize(req_id)
+
+    elif method == "tools/list":
+        return await _tools_list(req_id, vertical_filter)
+
+    elif method == "tools/call":
+        return await _tools_call(req_id, body.get("params", {}))
+
+    return JSONResponse({
+        "jsonrpc": "2.0",
+        "id": req_id,
+        "error": {"code": -32601, "message": f"Method not found: {method}"}
+    })
+
+# ─── MCP Lifecycle ────────────────────────────────────────────────────────────
+
+def _initialize(req_id):
     return {
-        "name": "BetterCompare",
-        "message": "Proxy is running",
-        "available_endpoints": [
-            "/tools",
-            "/tools?vertical=internet",
-            "/route?query=Ich brauche schnelles Internet",
-            "/feedback",
-            "/version"
-        ]
-    }
-
-
-@app.get("/tools")
-def get_tools(vertical: str | None = Query(default=None)):
-    aggregated_tools = []
-
-    for vertical_name, tools in VERTICAL_TOOLS.items():
-        if vertical and vertical != vertical_name:
-            continue
-
-        for tool in tools:
-            tool_with_vertical = tool.copy()
-            tool_with_vertical["vertical"] = vertical_name
-            aggregated_tools.append(tool_with_vertical)
-
-    return {
-        "mode": "full" if vertical is None else "vertical-test",
-        "selected_vertical": vertical,
-        "tools": aggregated_tools
-    }
-
-
-@app.get("/route")
-def route_request(query: str):
-    query_lower = query.lower()
-
-    if "internet" in query_lower or "wlan" in query_lower or "dsl" in query_lower:
-        return {
-            "query": query,
-            "selected_vertical": "internet",
-            "reason": "The query looks like an internet provider request."
-        }
-
-    if "reise" in query_lower or "flug" in query_lower or "hotel" in query_lower or "urlaub" in query_lower:
-        return {
-            "query": query,
-            "selected_vertical": "travel",
-            "reason": "The query looks like a travel request."
-        }
-
-    if "handy" in query_lower or "mobile" in query_lower or "sim" in query_lower:
-        return {
-            "query": query,
-            "selected_vertical": "mobile",
-            "reason": "The query looks like a mobile plan request."
-        }
-
-    return {
-        "query": query,
-        "selected_vertical": "unknown",
-        "reason": "No clear vertical could be selected."
-    }
-
-
-@app.get("/feedback")
-def get_feedback():
-    feedback = []
-
-    for vertical_name, tools in VERTICAL_TOOLS.items():
-        for tool in tools:
-            if "name" not in tool:
-                feedback.append({
-                    "vertical": vertical_name,
-                    "status": "rejected",
-                    "reason": "Tool is missing a name.",
-                    "suggestion": "Add a unique tool name."
-                })
-
-            elif "description" not in tool:
-                feedback.append({
-                    "vertical": vertical_name,
-                    "tool": tool.get("name"),
-                    "status": "needs_adaptation",
-                    "reason": "Tool is missing a description.",
-                    "suggestion": "Add a clear description so ChatGPT can understand when to use it."
-                })
-
-            elif "input_schema" not in tool:
-                feedback.append({
-                    "vertical": vertical_name,
-                    "tool": tool.get("name"),
-                    "status": "rejected",
-                    "reason": "Tool is missing an input_schema.",
-                    "suggestion": "Add a valid JSON schema for tool inputs."
-                })
-
-            else:
-                feedback.append({
-                    "vertical": vertical_name,
-                    "tool": tool.get("name"),
-                    "status": "accepted",
-                    "reason": "Tool passes basic conformance checks."
-                })
-
-    return feedback
-
-
-@app.get("/version")
-def get_version():
-    return {
-        "proxy": {
-            "name": "BetterCompare Proxy",
-            "version": "1.0.0",
-            "policy": "The proxy keeps the ChatGPT-facing interface stable. Vertical changes are validated before exposure."
-        },
-        "verticals": {
-            "internet": {
-                "version": "1.0.0",
-                "status": "compatible"
-            },
-            "travel": {
-                "version": "1.0.0",
-                "status": "compatible"
-            },
-            "mobile": {
-                "version": "1.0.0",
-                "status": "compatible"
+        "jsonrpc": "2.0",
+        "id": req_id,
+        "result": {
+            "protocolVersion": "2024-11-05",
+            "capabilities": {"tools": {"listChanged": True}},
+            "serverInfo": {
+                "name": "bettercompare-mcp-proxy",
+                "version": "1.0.0"
             }
         }
     }
-from pydantic import BaseModel
-from typing import Dict, Any
 
+async def _tools_list(req_id, vertical_filter=None):
+    tools = []
+    verticals = {vertical_filter: VERTICALS[vertical_filter]} \
+                if vertical_filter and vertical_filter in VERTICALS \
+                else VERTICALS
 
-class ToolExecutionRequest(BaseModel):
-    tool_name: str
-    arguments: Dict[str, Any]
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        for vertical, url in verticals.items():
+            try:
+                res = await client.get(f"{url}/tools")
+                raw_tools = res.json()
+                for tool in raw_tools:
+                    report = review_tool(tool, vertical)
+                    feedback_store.record(vertical, tool, report)
+                    stats.record_tool(vertical, report["status"])
+                    if report["status"] != "blocked":
+                        tools.append({
+                            "name": f"{vertical}__{tool['name']}",
+                            "description": tool.get("description", ""),
+                            "inputSchema": tool.get("input_schema", {})
+                        })
+            except Exception as e:
+                stats.record_error(vertical)
 
+    return {"jsonrpc": "2.0", "id": req_id, "result": {"tools": tools}}
 
-@app.post("/execute")
-def execute_tool(request: ToolExecutionRequest):
-    if request.tool_name == "compare_internet_offers":
-        return {
-            "tool": request.tool_name,
-            "vertical": "internet",
-            "result": [
-                {
-                    "provider": "SpeedyNet",
-                    "price_per_month": "29.99€",
-                    "speed": "250 Mbit/s"
-                },
-                {
-                    "provider": "FiberFox",
-                    "price_per_month": "34.99€",
-                    "speed": "500 Mbit/s"
-                }
-            ]
-        }
+async def _tools_call(req_id, params):
+    tool_name = params.get("name", "")
+    arguments = params.get("arguments", {})
 
-    if request.tool_name == "search_travel_offers":
-        return {
-            "tool": request.tool_name,
-            "vertical": "travel",
-            "result": [
-                {
-                    "destination": request.arguments.get("destination", "Mallorca"),
-                    "price": "499€",
-                    "type": "package holiday"
-                }
-            ]
-        }
+    # Resolve vertical from namespaced tool name
+    if "__" not in tool_name:
+        return _error(req_id, -32602, f"Tool name must be namespaced: vertical__tool_name")
 
-    if request.tool_name == "compare_mobile_plans":
-        return {
-            "tool": request.tool_name,
-            "vertical": "mobile",
-            "result": [
-                {
-                    "provider": "MobileMax",
-                    "data": "20 GB",
-                    "price_per_month": "14.99€"
-                }
-            ]
-        }
+    vertical, original_name = tool_name.split("__", 1)
+    url = VERTICALS.get(vertical)
 
-    return {
-        "error": "Unknown tool",
-        "tool": request.tool_name
-    }
+    if not url:
+        return _error(req_id, -32602, f"Unknown vertical: {vertical}")
+
+    correlation_id = str(uuid.uuid4())[:8]
+    tracer.start(correlation_id, tool_name, vertical)
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            tracer.step(correlation_id, "vertical_call")
+            res = await client.post(
+                f"{url}/tools/{original_name}/call",
+                json={"arguments": arguments}
+            )
+            result = res.json()
+            tracer.end(correlation_id, "ok")
+            stats.record_call(vertical, tool_name)
+            return {"jsonrpc": "2.0", "id": req_id, "result": result}
+
+    except Exception as e:
+        tracer.end(correlation_id, "error", str(e))
+        stats.record_error(vertical)
+        return _error(req_id, -32603, f"Vertical call failed: {str(e)}")
+
+def _error(req_id, code, message):
+    return {"jsonrpc": "2.0", "id": req_id, "error": {"code": code, "message": message}}
+
+# ─── Platform Endpoints ───────────────────────────────────────────────────────
+
+@app.get("/health")
+async def health():
+    results = {}
+    async with httpx.AsyncClient(timeout=3.0) as client:
+        for name, url in VERTICALS.items():
+            try:
+                r = await client.get(url)
+                results[name] = "ok"
+            except:
+                results[name] = "unreachable"
+    return results
+
+@app.get("/catalog")
+async def catalog():
+    return feedback_store.get_catalog()
+
+@app.get("/feedback")
+async def feedback(vertical: str = None):
+    return feedback_store.get(vertical)
+
+@app.get("/traces")
+async def traces():
+    return tracer.get_all()
+
+@app.get("/stats")
+async def get_stats():
+    return stats.get_all()
