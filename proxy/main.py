@@ -150,3 +150,11 @@ async def traces():
 @app.get("/stats")
 async def get_stats():
     return stats.get_all()
+from fastapi.responses import HTMLResponse
+import os
+
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard():
+    path = os.path.join(os.path.dirname(__file__), "dashboard/index.html")
+    with open(path) as f:
+        return f.read()
