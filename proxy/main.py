@@ -137,8 +137,20 @@ async def health():
 
 @app.get("/catalog")
 async def catalog():
+    # Fetch tools from all verticals and run conformance
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        for vertical, url in VERTICALS.items():
+            try:
+                res = await client.get(f"{url}/tools")
+                raw_tools = res.json()
+                for tool in raw_tools:
+                    report = review_tool(tool, vertical)
+                    feedback_store.record(vertical, tool, report)
+                    stats.record_tool(vertical, report["status"])
+            except Exception as e:
+                stats.record_error(vertical)
+    
     return feedback_store.get_catalog()
-
 @app.get("/feedback")
 async def feedback(vertical: str = None):
     return feedback_store.get(vertical)
