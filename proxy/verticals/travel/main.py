@@ -11,14 +11,55 @@ def tools():
     return [
         {
             "name": "search_travel_offers",
-            "description": "Search travel and vacation offers.",
+            "description": "Search travel and vacation offers for a destination and budget.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "destination": {"type": "string", "description": "Travel destination"},
+                    "budget": {"type": "integer", "description": "Maximum budget in EUR"}
+                },
+                "required": ["destination"]
+            }
+        },
+        {
+            "name": "search_flights",
+            "description": "Search for available flights between two cities on a given date.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "origin": {"type": "string", "description": "Departure city or airport code"},
+                    "destination": {"type": "string", "description": "Arrival city or airport code"},
+                    "date": {"type": "string", "description": "Travel date in YYYY-MM-DD format"}
+                },
+                "required": ["origin", "destination", "date"]
+            }
+        },
+        {
+            "name": "search_hotels",
+            "description": "Search for hotels at a destination with check-in and check-out dates.",
             "input_schema": {
                 "type": "object",
                 "properties": {
                     "destination": {"type": "string"},
-                    "budget": {"type": "integer"}
+                    "checkin": {"type": "string", "description": "Check-in date YYYY-MM-DD"},
+                    "checkout": {"type": "string", "description": "Check-out date YYYY-MM-DD"},
+                    "guests": {"type": "integer", "description": "Number of guests"}
                 },
-                "required": ["destination"]
+                "required": ["destination", "checkin", "checkout"]
+            }
+        },
+        {
+            "name": "get_travel_insurance",
+            "description": "Get travel insurance options for a trip.",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "destination": {"type": "string"},
+                    "duration_days": {"type": "integer", "description": "Trip duration in days"},
+                    "travelers": {"type": "integer", "description": "Number of travelers"}
+                },
+                "required": ["destination", "duration_days"]
             }
         }
     ]
+    
