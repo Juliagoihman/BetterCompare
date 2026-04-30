@@ -40,6 +40,12 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="BetterCompare MCP Proxy", lifespan=lifespan)
 
+from fastapi.staticfiles import StaticFiles
+
+app.mount("/static", 
+    StaticFiles(directory=os.path.join(os.path.dirname(__file__), "dashboard")), 
+    name="static")
+
 @app.post("/mcp")
 async def mcp(request: Request):
     body = await request.json()
