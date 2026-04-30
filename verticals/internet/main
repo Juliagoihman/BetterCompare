@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+from pydantic import BaseModel
+from typing import Any, Dict
 
 app = FastAPI(title="Internet MCP")
 
@@ -40,9 +42,46 @@ def tools():
                 "type": "object",
                 "properties": {
                     "address": {"type": "string"},
-                    "provider": {"type": "string", "description": "Optional: specific provider name"}
+                    "provider": {"type": "string"}
                 },
                 "required": ["address"]
             }
         }
     ]
+
+class CallRequest(BaseModel):
+    arguments: Dict[str, Any] = {}
+
+@app.post("/tools/compare_internet_offers/call")
+def compare_internet_offers(req: CallRequest):
+    address = req.arguments.get("address", "unknown")
+    min_speed = req.arguments.get("min_speed", 50)
+    return {
+        "results": [
+            {"provider": "Telekom", "speed": 250, "price": 39.99, "contract_months": 24},
+            {"provider": "Vodafone", "speed": 100, "price": 29.99, "contract_months": 12},
+            {"provider": "O2", "speed": 50, "price": 19.99, "contract_months": 24}
+        ],
+        "address": address,
+        "min_speed": min_speed
+    }
+
+@app.post("/tools/get_best_internet_deal/call")
+def get_best_internet_deal(req: CallRequest):
+    address = req.arguments.get("address", "unknown")
+    max_price = req.arguments.get("max_price", 50)
+    return {
+        "best_deal": {"provider": "Vodafone", "speed": 100, "price": 29.99, "contract_months": 12},
+        "address": address,
+        "max_price": max_price
+    }
+
+@app.post("/tools/check_availability/call")
+def check_availability(req: CallRequest):
+    address = req.arguments.get("address", "unknown")
+    return {
+        "available": True,
+        "address": address,
+        "providers": ["Telekom", "Vodafone", "O2"],
+        "max_speed": 250
+    }
