@@ -239,7 +239,92 @@ async def check_version(vertical: str):
             "deprecated": "Will be removed in next major version"
         }.get(v["status"])
     }
+@app.get("/openapi-schema")
+async def openapi_schema():
+    tools = []
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        for vertical, url in VERTICALS.items():
+            try:
+                res = await client.get(f"{url}/tools")
+                raw_tools = res.json()
+                for tool in raw_tools:
+                    report = review_tool(tool, vertical)
+                    if report["status"] != "blocked":
+                        tools.append((vertical, tool))
+            except:
+                pass
 
+    paths = {}
+    for vertical, tool in tools:
+        name = f"{vertical}__{tool['name']}"
+        schema = tool.get("input_schema", {})
+        paths[f"/tools/{name}/call"] = {
+            "post": {
+                "operationId": name,
+                "summary": tool.get("description", f"Call {name}"),
+                "requestBody": {
+                    "required": True,
+                    "content": {
+                        "application/json": {
+                            "schema": schema
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Tool result",
+                        "content": {
+                            "application/json": {
+                                "schema": {"type": "object"}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    return {
+        "openapi": "3.1.0",
+        "info": {
+            "title": "BetterCompare MCP Proxy",
+            "version": "1.0.0",
+            "description": "Compare internet, mobile, travel and insurance offers"
+        },
+        "servers": [{"url": "https://bettercompare.dev"}],
+        "paths": paths
+    }
+    @app.post("/tools/{tool_name}/call")
+async def call_tool(tool_name: str, request: Request):
+    body = await request.json()
+    
+    if "__" not in tool_name:
+        return JSONResponse({"error": "Invalid tool name"}, status_code=400)
+    
+    vertical, original_name = tool_name.split("__", 1)
+    url = VERTICALS.get(vertical)
+    
+    if not url:
+        return JSONResponse({"error": f"Unknown vertical: {vertical}"}, status_code=404)
+
+    correlation_id = str(uuid.uuid4())[:8]
+    tracer.start(correlation_id, tool_name, vertical)
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            tracer.step(correlation_id, "vertical_call")
+            res = await client.post(
+                f"{url}/tools/{original_name}/call",
+                json={"arguments": body}
+            )
+            result = res.json()
+            tracer.end(correlation_id, "ok")
+            stats.record_call(vertical, tool_name)
+            session_store.record("chatgpt", tool_name, vertical, "ok")
+            return result
+    except Exception as e:
+        tracer.end(correlation_id, "error", str(e))
+        stats.record_error(vertical)
+        return JSONResponse({"error": str(e)}, status_code=500)
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard():
     path = os.path.join(os.path.dirname(__file__), "dashboard/index.html")
