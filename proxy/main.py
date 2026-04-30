@@ -1,7 +1,9 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
+from contextlib import asynccontextmanager
 import httpx
 import uuid
+import os
 from datetime import datetime
 
 from conformance.engine import review_tool
@@ -9,19 +11,13 @@ from monitoring.tracer import tracer
 from monitoring.stats import stats
 from feedback.store import feedback_store
 
-app = FastAPI(title="BetterCompare MCP Proxy", lifespan=lifespan)
-
-# Vertical registry — maps name to URL
 VERTICALS = {
-    "internet":  "http://localhost:8801",
-    "mobile":    "http://localhost:8802",
-    "travel":    "http://localhost:8803",
+    "internet": "http://localhost:8801",
+    "mobile":   "http://localhost:8802",
+    "travel":   "http://localhost:8803",
 }
-from contextlib import asynccontextmanager
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Load all tools on startup
+async def _load_tools():
     async with httpx.AsyncClient(timeout=5.0) as client:
         for vertical, url in VERTICALS.items():
             try:
@@ -33,8 +29,13 @@ async def lifespan(app: FastAPI):
                     stats.record_tool(vertical, report["status"])
             except Exception as e:
                 stats.record_error(vertical)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await _load_tools()
     yield
-# ─── MCP Endpoint ────────────────────────────────────────────────────────────
+
+app = FastAPI(title="BetterCompare MCP Proxy", lifespan=lifespan)
 
 @app.post("/mcp")
 async def mcp(request: Request):
@@ -45,10 +46,8 @@ async def mcp(request: Request):
 
     if method == "initialize":
         return _initialize(req_id)
-
     elif method == "tools/list":
         return await _tools_list(req_id, vertical_filter)
-
     elif method == "tools/call":
         return await _tools_call(req_id, body.get("params", {}))
 
@@ -57,8 +56,6 @@ async def mcp(request: Request):
         "id": req_id,
         "error": {"code": -32601, "message": f"Method not found: {method}"}
     })
-
-# ─── MCP Lifecycle ────────────────────────────────────────────────────────────
 
 def _initialize(req_id):
     return {
@@ -104,9 +101,8 @@ async def _tools_call(req_id, params):
     tool_name = params.get("name", "")
     arguments = params.get("arguments", {})
 
-    # Resolve vertical from namespaced tool name
     if "__" not in tool_name:
-        return _error(req_id, -32602, f"Tool name must be namespaced: vertical__tool_name")
+        return _error(req_id, -32602, "Tool name must be namespaced: vertical__tool_name")
 
     vertical, original_name = tool_name.split("__", 1)
     url = VERTICALS.get(vertical)
@@ -128,7 +124,6 @@ async def _tools_call(req_id, params):
             tracer.end(correlation_id, "ok")
             stats.record_call(vertical, tool_name)
             return {"jsonrpc": "2.0", "id": req_id, "result": result}
-
     except Exception as e:
         tracer.end(correlation_id, "error", str(e))
         stats.record_error(vertical)
@@ -137,15 +132,13 @@ async def _tools_call(req_id, params):
 def _error(req_id, code, message):
     return {"jsonrpc": "2.0", "id": req_id, "error": {"code": code, "message": message}}
 
-# ─── Platform Endpoints ───────────────────────────────────────────────────────
-
 @app.get("/health")
 async def health():
     results = {}
     async with httpx.AsyncClient(timeout=3.0) as client:
         for name, url in VERTICALS.items():
             try:
-                r = await client.get(url)
+                await client.get(url)
                 results[name] = "ok"
             except:
                 results[name] = "unreachable"
@@ -153,20 +146,9 @@ async def health():
 
 @app.get("/catalog")
 async def catalog():
-    # Fetch tools from all verticals and run conformance
-    async with httpx.AsyncClient(timeout=5.0) as client:
-        for vertical, url in VERTICALS.items():
-            try:
-                res = await client.get(f"{url}/tools")
-                raw_tools = res.json()
-                for tool in raw_tools:
-                    report = review_tool(tool, vertical)
-                    feedback_store.record(vertical, tool, report)
-                    stats.record_tool(vertical, report["status"])
-            except Exception as e:
-                stats.record_error(vertical)
-    
+    await _load_tools()
     return feedback_store.get_catalog()
+
 @app.get("/feedback")
 async def feedback(vertical: str = None):
     return feedback_store.get(vertical)
@@ -178,11 +160,10 @@ async def traces():
 @app.get("/stats")
 async def get_stats():
     return stats.get_all()
-from fastapi.responses import HTMLResponse
-import os
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard():
     path = os.path.join(os.path.dirname(__file__), "dashboard/index.html")
     with open(path) as f:
         return f.read()
+  
