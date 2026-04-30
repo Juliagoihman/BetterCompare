@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, HTMLResponse
 from contextlib import asynccontextmanager
+from catalog.versions import get_version_manifest
 import httpx
 import uuid
 import os
@@ -161,7 +162,26 @@ async def traces():
 @app.get("/stats")
 async def get_stats():
     return stats.get_all()
+@app.get("/versions")
+async def versions():
+    return get_version_manifest()
 
+@app.get("/versions/check")
+async def check_version(vertical: str):
+    from catalog.versions import VERTICAL_VERSIONS
+    v = VERTICAL_VERSIONS.get(vertical)
+    if not v:
+        return {"error": f"Unknown vertical: {vertical}"}
+    return {
+        "vertical": vertical,
+        "version": v["version"],
+        "status": v["status"],
+        "notes": {
+            "stable": "Safe to use in production",
+            "beta": "May change — not recommended for production",
+            "deprecated": "Will be removed in next major version"
+        }.get(v["status"])
+    }
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard():
     path = os.path.join(os.path.dirname(__file__), "dashboard/index.html")
