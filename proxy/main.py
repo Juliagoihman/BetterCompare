@@ -47,29 +47,7 @@ app.mount("/static",
     StaticFiles(directory=os.path.join(os.path.dirname(__file__), "dashboard")),
     name="static")
 
-# ─── MCP SSE Endpoint (for MCP Inspector) ────────────────────────────────────
-
-@app.get("/mcp")
-async def mcp_sse(request: Request):
-    async def event_stream():
-        yield f"event: endpoint\ndata: {json.dumps({'url': str(request.base_url) + 'mcp'})}\n\n"
-        while True:
-            if await request.is_disconnected():
-                break
-            yield ": ping\n\n"
-            await asyncio.sleep(15)
-
-    return StreamingResponse(
-        event_stream(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no"
-        }
-    )
-
-# ─── MCP POST Endpoint ────────────────────────────────────────────────────────
+# ─── Streamable HTTP MCP Endpoint ─────────────────────────────────────────────
 
 @app.post("/mcp")
 async def mcp(request: Request):
@@ -82,18 +60,37 @@ async def mcp(request: Request):
         request.headers.get("x-vertical")
     )
 
-    if method == "initialize":
-        return _initialize(req_id)
-    elif method == "tools/list":
-        return await _tools_list(req_id, vertical_filter)
-    elif method == "tools/call":
-        return await _tools_call(req_id, body.get("params", {}), dict(request.headers))
+    # Check if client accepts SSE
+    accept = request.headers.get("accept", "")
+    use_sse = "text/event-stream" in accept
 
-    return JSONResponse({
-        "jsonrpc": "2.0",
-        "id": req_id,
-        "error": {"code": -32601, "message": f"Method not found: {method}"}
-    })
+    if method == "initialize":
+        result = _initialize(req_id)
+    elif method == "tools/list":
+        result = await _tools_list(req_id, vertical_filter)
+    elif method == "tools/call":
+        result = await _tools_call(req_id, body.get("params", {}), dict(request.headers))
+    else:
+        result = {
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "error": {"code": -32601, "message": f"Method not found: {method}"}
+        }
+
+    if use_sse:
+        async def stream():
+            yield f"data: {json.dumps(result)}\n\n"
+        return StreamingResponse(
+            stream(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no"
+            }
+        )
+
+    return JSONResponse(result)
 
 # ─── MCP Lifecycle ────────────────────────────────────────────────────────────
 
