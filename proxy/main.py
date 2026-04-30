@@ -12,10 +12,10 @@ from monitoring.stats import stats
 from feedback.store import feedback_store
 
 VERTICALS = {
-    "internet":  "http://localhost:8801",
-    "mobile":    "http://localhost:8802",
-    "travel":    "http://localhost:8803",
-    "insurance": "http://localhost:8804",
+    "internet":  "http://127.0.0.1:8801",
+    "mobile":    "http://127.0.0.1:8802",
+    "travel":    "http://127.0.0.1:8803",
+    "insurance": "http://127.0.0.1:8804",
 }
 
 async def _load_tools():
