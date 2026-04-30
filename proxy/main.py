@@ -1,11 +1,14 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.responses import JSONResponse, HTMLResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from catalog.versions import get_version_manifest
 from monitoring.session_store import session_store
 import httpx
 import uuid
 import os
+import json
+import asyncio
 from datetime import datetime
 
 from conformance.engine import review_tool
@@ -40,11 +43,33 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="BetterCompare MCP Proxy", lifespan=lifespan)
 
-from fastapi.staticfiles import StaticFiles
-
-app.mount("/static", 
-    StaticFiles(directory=os.path.join(os.path.dirname(__file__), "dashboard")), 
+app.mount("/static",
+    StaticFiles(directory=os.path.join(os.path.dirname(__file__), "dashboard")),
     name="static")
+
+# ─── MCP SSE Endpoint (for MCP Inspector) ────────────────────────────────────
+
+@app.get("/mcp")
+async def mcp_sse(request: Request):
+    async def event_stream():
+        yield f"event: endpoint\ndata: {json.dumps({'url': str(request.base_url) + 'mcp'})}\n\n"
+        while True:
+            if await request.is_disconnected():
+                break
+            yield ": ping\n\n"
+            await asyncio.sleep(15)
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
+# ─── MCP POST Endpoint ────────────────────────────────────────────────────────
 
 @app.post("/mcp")
 async def mcp(request: Request):
@@ -52,7 +77,6 @@ async def mcp(request: Request):
     method = body.get("method")
     req_id = body.get("id", 1)
 
-    # Support both ?vertical= and x-vertical header
     vertical_filter = (
         request.query_params.get("vertical") or
         request.headers.get("x-vertical")
@@ -70,6 +94,8 @@ async def mcp(request: Request):
         "id": req_id,
         "error": {"code": -32601, "message": f"Method not found: {method}"}
     })
+
+# ─── MCP Lifecycle ────────────────────────────────────────────────────────────
 
 def _initialize(req_id):
     return {
@@ -138,7 +164,6 @@ async def _tools_call(req_id, params, headers={}):
             tracer.end(correlation_id, "ok")
             stats.record_call(vertical, tool_name)
 
-            # Record session
             session_id = headers.get("x-session-id", "anonymous")
             session_store.record(session_id, tool_name, vertical, "ok")
 
@@ -151,6 +176,8 @@ async def _tools_call(req_id, params, headers={}):
 
 def _error(req_id, code, message):
     return {"jsonrpc": "2.0", "id": req_id, "error": {"code": code, "message": message}}
+
+# ─── Platform Endpoints ───────────────────────────────────────────────────────
 
 @app.get("/health")
 async def health():
