@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+from pydantic import BaseModel
+from typing import Any, Dict
 
 app = FastAPI(title="Travel MCP")
 
@@ -15,8 +17,8 @@ def tools():
             "input_schema": {
                 "type": "object",
                 "properties": {
-                    "destination": {"type": "string", "description": "Travel destination"},
-                    "budget": {"type": "integer", "description": "Maximum budget in EUR"}
+                    "destination": {"type": "string"},
+                    "budget": {"type": "integer"}
                 },
                 "required": ["destination"]
             }
@@ -27,9 +29,9 @@ def tools():
             "input_schema": {
                 "type": "object",
                 "properties": {
-                    "origin": {"type": "string", "description": "Departure city or airport code"},
-                    "destination": {"type": "string", "description": "Arrival city or airport code"},
-                    "date": {"type": "string", "description": "Travel date in YYYY-MM-DD format"}
+                    "origin": {"type": "string"},
+                    "destination": {"type": "string"},
+                    "date": {"type": "string"}
                 },
                 "required": ["origin", "destination", "date"]
             }
@@ -41,9 +43,9 @@ def tools():
                 "type": "object",
                 "properties": {
                     "destination": {"type": "string"},
-                    "checkin": {"type": "string", "description": "Check-in date YYYY-MM-DD"},
-                    "checkout": {"type": "string", "description": "Check-out date YYYY-MM-DD"},
-                    "guests": {"type": "integer", "description": "Number of guests"}
+                    "checkin": {"type": "string"},
+                    "checkout": {"type": "string"},
+                    "guests": {"type": "integer"}
                 },
                 "required": ["destination", "checkin", "checkout"]
             }
@@ -55,10 +57,75 @@ def tools():
                 "type": "object",
                 "properties": {
                     "destination": {"type": "string"},
-                    "duration_days": {"type": "integer", "description": "Trip duration in days"},
-                    "travelers": {"type": "integer", "description": "Number of travelers"}
+                    "duration_days": {"type": "integer"},
+                    "travelers": {"type": "integer"}
                 },
                 "required": ["destination", "duration_days"]
             }
         }
     ]
+
+class CallRequest(BaseModel):
+    arguments: Dict[str, Any] = {}
+
+@app.post("/tools/search_travel_offers/call")
+def search_travel_offers(req: CallRequest):
+    destination = req.arguments.get("destination", "unknown")
+    budget = req.arguments.get("budget", 1000)
+    return {
+        "results": [
+            {"name": f"7 days {destination}", "price": 799, "hotel": "4 stars", "flights": "included"},
+            {"name": f"5 days {destination}", "price": 599, "hotel": "3 stars", "flights": "included"},
+            {"name": f"10 days {destination}", "price": 1299, "hotel": "5 stars", "flights": "included"}
+        ],
+        "destination": destination,
+        "budget": budget
+    }
+
+@app.post("/tools/search_flights/call")
+def search_flights(req: CallRequest):
+    origin = req.arguments.get("origin", "unknown")
+    destination = req.arguments.get("destination", "unknown")
+    date = req.arguments.get("date", "unknown")
+    return {
+        "flights": [
+            {"airline": "Lufthansa", "departure": "08:00", "arrival": "10:30", "price": 189},
+            {"airline": "Ryanair", "departure": "14:00", "arrival": "16:15", "price": 89},
+            {"airline": "EasyJet", "departure": "19:00", "arrival": "21:20", "price": 129}
+        ],
+        "origin": origin,
+        "destination": destination,
+        "date": date
+    }
+
+@app.post("/tools/search_hotels/call")
+def search_hotels(req: CallRequest):
+    destination = req.arguments.get("destination", "unknown")
+    checkin = req.arguments.get("checkin")
+    checkout = req.arguments.get("checkout")
+    return {
+        "hotels": [
+            {"name": f"Hotel Central {destination}", "stars": 4, "price_per_night": 120},
+            {"name": f"Budget Inn {destination}", "stars": 3, "price_per_night": 75},
+            {"name": f"Grand {destination}", "stars": 5, "price_per_night": 250}
+        ],
+        "destination": destination,
+        "checkin": checkin,
+        "checkout": checkout
+    }
+
+@app.post("/tools/get_travel_insurance/call")
+def get_travel_insurance(req: CallRequest):
+    destination = req.arguments.get("destination", "unknown")
+    duration_days = req.arguments.get("duration_days", 7)
+    travelers = req.arguments.get("travelers", 1)
+    return {
+        "options": [
+            {"provider": "Allianz", "coverage": "basic", "price": 29.99 * travelers},
+            {"provider": "AXA", "coverage": "premium", "price": 49.99 * travelers},
+            {"provider": "HanseMerkur", "coverage": "full", "price": 69.99 * travelers}
+        ],
+        "destination": destination,
+        "duration_days": duration_days,
+        "travelers": travelers
+    }
