@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, HTMLResponse
 from contextlib import asynccontextmanager
 from catalog.versions import get_version_manifest
+from monitoring.session_store import session_store
 import httpx
 import uuid
 import os
@@ -44,14 +45,19 @@ async def mcp(request: Request):
     body = await request.json()
     method = body.get("method")
     req_id = body.get("id", 1)
-    vertical_filter = request.query_params.get("vertical")
+
+    # Support both ?vertical= and x-vertical header
+    vertical_filter = (
+        request.query_params.get("vertical") or
+        request.headers.get("x-vertical")
+    )
 
     if method == "initialize":
         return _initialize(req_id)
     elif method == "tools/list":
         return await _tools_list(req_id, vertical_filter)
     elif method == "tools/call":
-        return await _tools_call(req_id, body.get("params", {}))
+        return await _tools_call(req_id, body.get("params", {}), dict(request.headers))
 
     return JSONResponse({
         "jsonrpc": "2.0",
@@ -99,7 +105,7 @@ async def _tools_list(req_id, vertical_filter=None):
 
     return {"jsonrpc": "2.0", "id": req_id, "result": {"tools": tools}}
 
-async def _tools_call(req_id, params):
+async def _tools_call(req_id, params, headers={}):
     tool_name = params.get("name", "")
     arguments = params.get("arguments", {})
 
@@ -125,7 +131,13 @@ async def _tools_call(req_id, params):
             result = res.json()
             tracer.end(correlation_id, "ok")
             stats.record_call(vertical, tool_name)
+
+            # Record session
+            session_id = headers.get("x-session-id", "anonymous")
+            session_store.record(session_id, tool_name, vertical, "ok")
+
             return {"jsonrpc": "2.0", "id": req_id, "result": result}
+
     except Exception as e:
         tracer.end(correlation_id, "error", str(e))
         stats.record_error(vertical)
@@ -162,6 +174,21 @@ async def traces():
 @app.get("/stats")
 async def get_stats():
     return stats.get_all()
+
+@app.get("/sessions")
+async def sessions(session_id: str = None):
+    if session_id:
+        s = session_store.get(session_id)
+        if not s:
+            return {"error": "Session not found"}
+        return s
+    return session_store.get_all()
+
+@app.post("/reload")
+async def reload():
+    await _load_tools()
+    return {"status": "reloaded", "message": "Tool catalog refreshed"}
+
 @app.get("/versions")
 async def versions():
     return get_version_manifest()
@@ -182,6 +209,7 @@ async def check_version(vertical: str):
             "deprecated": "Will be removed in next major version"
         }.get(v["status"])
     }
+
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard():
     path = os.path.join(os.path.dirname(__file__), "dashboard/index.html")
