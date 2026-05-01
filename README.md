@@ -1,408 +1,309 @@
 # GenDev9 – CHECK24 ChatGPT App Challenge
+## BetterCompare – Eine Suche. Alle Vergleiche.
 
-## BetterCompare – Compare Everything in One Place
-
-BetterCompare is a ChatGPT-native MCP proxy that aggregates multiple comparison services into a single unified interface.
-
----
-
-# 1. 📘 Project Overview
-
-**Project Name:** BetterCompare  
-**Author:** Julia Goihman
-
-Instead of exposing separate MCP connectors per vertical, this system provides:
-
-* one **central ChatGPT-facing endpoint**
-* intelligent **cross-vertical routing**
-* strict **Apps SDK / MCP conformance filtering**
-* transparent **feedback for vertical teams**
-
-The system reflects a real CHECK24 challenge:
-
-👉 Many independent products internally
-👉 One seamless experience externally
-
-Users can start with vague intents (e.g. *“I need cheap internet for students”*) and the proxy routes them to the correct vertical without requiring explicit product selection.
+BetterCompare is a ChatGPT-native MCP proxy that aggregates multiple CHECK24 comparison verticals into a single unified interface — powered by a conformance engine, live monitoring, and structured developer feedback.
 
 ---
 
-# 🚀 Live Demo
+## 🚀 Live Demo
 
-* **Proxy MCP Endpoint:** `<DEPLOYED_URL>`
-* **MCP Inspector URL:** `<INSPECTOR_URL>`
-* **(Optional) Monitoring Dashboard:** `<DASHBOARD_URL>`
+| Service | URL |
+|---|---|
+| 🌐 Proxy MCP Endpoint | https://bettercompare.dev/mcp |
+| 📊 Monitoring Dashboard | https://bettercompare.dev/dashboard |
+| 🔍 OpenAPI Schema | https://bettercompare.dev/openapi-schema |
+| 💬 Feedback | https://bettercompare.dev/feedback |
+| 📋 Catalog | https://bettercompare.dev/catalog |
+| 🔢 Versions | https://bettercompare.dev/versions |
 
-> ⚠️ ChatGPT connects only to the proxy MCP. All vertical MCPs are hidden behind it.
+> ⚠️ ChatGPT connects **only** to the proxy MCP. All vertical MCPs run internally and are never exposed directly.
 
 ---
 
-# 📁 Repository Structure
+## 🎥 Video
 
-```id="1s0gqg"
-/proxy-mcp                 # ChatGPT-facing MCP (core system)
-/verticals/
-   /internet-mcp           # internet comparison vertical (based on BetterSurf logic)
-   /mobile-mcp             # mock mobile plans vertical
-   /travel-mcp             # mock travel / flights vertical
-/shared/
-   /schemas                # shared validation + tool schemas
-   /routing                # intent detection + disambiguation logic
-/docs                      # architecture + design decisions
+📺 **Demo Video:** `<VIDEO_LINK_HERE>`
+
+The video covers:
+- Architecture explanation
+- Live dashboard walkthrough
+- ChatGPT tool call demonstration
+- Conformance engine in action
+- Versioning and feedback system
+
+---
+
+## 📁 Repository Structure
+BetterCompare/
+├── proxy/
+│   ├── main.py                  ← MCP proxy core
+│   ├── requirements.txt
+│   ├── conformance/
+│   │   └── engine.py            ← Rule engine (schema, safety, naming, UX)
+│   ├── monitoring/
+│   │   ├── tracer.py            ← Per-request tracing with correlation IDs
+│   │   ├── stats.py             ← Metrics aggregation per vertical
+│   │   └── session_store.py     ← Session-level tool usage tracking
+│   ├── feedback/
+│   │   └── store.py             ← Actionable feedback per vertical team
+│   ├── catalog/
+│   │   └── versions.py          ← Versioning + breaking change detection
+│   ├── dashboard/
+│   │   ├── index.html           ← Live monitoring dashboard
+│   │   └── BetterCompare.png    ← Logo
+│   └── verticals/
+│       ├── internet/main.py     ← Port 8801
+│       ├── mobile/main.py       ← Port 8802
+│       ├── travel/main.py       ← Port 8803
+│       └── insurance/main.py    ← Port 8804
+├── Dockerfile
+├── start.sh
+└── privacy.md
+
+---
+
+## ✅ Challenge Requirements
+
+### Single ChatGPT-facing Proxy MCP
+- Exactly one MCP endpoint: `POST https://bettercompare.dev/mcp`
+- All verticals hidden behind the proxy
+- Proxy handles: tool aggregation, routing, conformance, feedback
+
+### Vertical MCPs (Mocked)
+4 independent FastAPI servers, each owning their own tools:
+
+| Vertical | Tools | Port |
+|---|---|---|
+| Internet | compare_internet_offers, get_best_internet_deal, check_availability | 8801 |
+| Mobile | compare_mobile_plans, get_best_mobile_deal, check_network_coverage, compare_phone_hardware | 8802 |
+| Travel | search_travel_offers, search_flights, search_hotels, get_travel_insurance | 8803 |
+| Insurance | compare_insurance_plans, get_insurance_quote, list_insurance_types | 8804 |
+
+### Conformance Engine
+Every tool is evaluated against structured rules before exposure:
+
+```json
+{
+  "rule_id": "MISSING_DESCRIPTION",
+  "group": "schema",
+  "severity": "WARNING",
+  "reason": "Tool 'get_insurance_quote' has no meaningful description",
+  "fix": "Add a description of at least 10 characters explaining what the tool does"
+}
 ```
 
----
+Rules are grouped into: `schema`, `safety`, `naming`, `ux`
 
-# 2. ✅ Challenge Requirements
+Each violation includes a `fix` field — vertical teams know exactly what to change.
 
-## ✅ Single ChatGPT-facing Proxy MCP
+### Versioning
 
-* Exactly **one MCP endpoint exposed**
-* All verticals are **only accessible through the proxy**
-* Proxy responsibilities:
-
-  * tool aggregation
-  * routing decisions
-  * schema validation
-  * safety filtering
-
----
-
-## ✅ Vertical MCPs (Mocked)
-
-Each vertical:
-
-* runs as its **own MCP server**
-* defines its **own tools independently**
-* can evolve without breaking the proxy
-
-### Implemented Verticals
-
-| Vertical | Type      | Description                                                  |
-| -------- | --------- | ------------------------------------------------------------ |
-| Internet | Semi-real | Internet provider comparison (adapted from previous project) |
-| Mobile   | Mock      | Mobile plan search and comparison                            |
-| Travel   | Mock      | Flight / travel search                                       |
-
----
-
-## ✅ ChatGPT-Conformant Tools
-
-The proxy enforces:
-
-* valid JSON schemas
-* safe parameter structures
-* clear, LLM-friendly tool descriptions
-
-### Example Tool (Exposed via Proxy)
-
-```json id="f5o6x6"
+```json
 {
-  "name": "compare_internet_providers",
-  "description": "Compare internet providers for a given address",
-  "input_schema": {
-    "type": "object",
-    "properties": {
-      "address": { "type": "string" },
-      "min_speed": { "type": "number" }
-    },
-    "required": ["address"]
+  "proxy_version": "1.0.0",
+  "catalog_version": "2026-04-30",
+  "verticals": {
+    "internet": {"version": "1.2.0", "status": "stable"},
+    "insurance": {"version": "0.9.0", "status": "beta"}
   }
 }
 ```
 
----
+- Breaking change detection (new required params, type changes)
+- `GET /versions` — full version manifest
+- `GET /versions/check?vertical=insurance` — per-vertical status
 
-## ✅ Versioning Strategy
+### Feedback to Verticals
+`GET /feedback?vertical=insurance` returns:
 
-### Proxy Versioning
-
-* Semantic versioning (`v1`, `v1.1`, `v2`)
-* Changes affect:
-
-  * tool exposure
-  * routing logic
-  * schema normalization
-
-### Vertical Versioning
-
-Each vertical exposes:
-
-* version metadata
-* supported capabilities
-
-### Key Principle
-
-👉 The proxy absorbs breaking changes so ChatGPT remains stable.
-
----
-
-## ✅ Feedback to Vertical Teams
-
-The proxy actively reports issues with tools:
-
-* ❌ Non-conformant schemas
-* ⚠️ Unsafe exposure
-* 🔁 Required adaptations
-* 🚫 Withheld tools
-
-### Example Feedback
-
-```json id="o9gxgg"
+```json
 {
-  "vertical": "travel",
-  "tool": "searchFlight",
-  "status": "rejected",
-  "reason": "Ambiguous naming conflicts with another vertical",
-  "suggestion": "Improve description or add intent metadata"
+  "vertical": "insurance",
+  "score": 87,
+  "tools": [
+    {
+      "tool": "get_insurance_quote",
+      "status": "adapted",
+      "violations": [
+        {
+          "rule_id": "MISSING_DESCRIPTION",
+          "severity": "WARNING",
+          "reason": "Tool has no meaningful description",
+          "fix": "Add a description of at least 10 characters"
+        }
+      ]
+    }
+  ]
 }
 ```
 
 ---
 
-# 3. 🏗️ Architecture
+## 🏗️ Architecture
+ChatGPT / MCP Inspector
+│
+▼
+┌─────────────────────────────────┐
+│   BetterCompare MCP Proxy       │
+│   bettercompare.dev :8787       │
+│                                 │
+│  ┌──────────┐  ┌─────────────┐  │
+│  │Conformance│  │   Routing   │  │
+│  │  Engine  │  │  + Namespace│  │
+│  └──────────┘  └─────────────┘  │
+│  ┌──────────┐  ┌─────────────┐  │
+│  │ Monitoring│  │  Feedback   │  │
+│  │ + Tracing│  │   Engine    │  │
+│  └──────────┘  └─────────────┘  │
+└───────────┬─────────────────────┘
+│ internal only
+┌─────────┼────────────┬─────────┐
+▼         ▼            ▼         ▼
+:8801     :8802        :8803     :8804
+Internet  Mobile       Travel  Insurance
+---
 
-## 🏛️ System Overview
+## 🔌 API Reference
 
-```id="oeyyub"
-ChatGPT
-   │
-   ▼
-OmniCompare Proxy MCP
-   ├── Routing Layer
-   ├── Tool Registry
-   ├── Conformance Validator
-   ├── Feedback Engine
-   │
-   ├── Internet MCP
-   ├── Mobile MCP
-   └── Travel MCP
+| Endpoint | Method | Description |
+|---|---|---|
+| `/mcp` | POST | MCP endpoint for ChatGPT |
+| `/mcp?vertical=internet` | POST | QA mode — only internet tools |
+| `/health` | GET | Vertical reachability |
+| `/catalog` | GET | Full tool catalog |
+| `/feedback` | GET | Conformance feedback (all verticals) |
+| `/feedback?vertical=X` | GET | Feedback for one vertical |
+| `/traces` | GET | Recent tool call traces |
+| `/stats` | GET | Aggregated metrics |
+| `/sessions` | GET | Session-level tool usage |
+| `/versions` | GET | Version manifest |
+| `/versions/check?vertical=X` | GET | Per-vertical version status |
+| `/dashboard` | GET | Live monitoring dashboard |
+| `/reload` | POST | Invalidate tool cache |
+| `/openapi-schema` | GET | OpenAPI schema for ChatGPT Actions |
+
+### Per-Vertical QA Mode
+```bash
+# Via query param
+POST https://bettercompare.dev/mcp?vertical=internet
+
+# Via header
+POST https://bettercompare.dev/mcp
+x-vertical: internet
+```
+
+### Connecting to ChatGPT
+1. Go to [chatgpt.com/gpts/editor](https://chatgpt.com/gpts/editor)
+2. Click **Configure** → **Actions** → **Add actions**
+3. Click **Import from URL** and enter: https://bettercompare.dev/openapi-schema
+4. ChatGPT will discover all tools automatically
+
+---
+
+## ⭐ Optional Features
+
+### Cross-Vertical Namespacing
+All tools are namespaced as `vertical__tool_name`:
+- `internet__compare_internet_offers`
+- `travel__search_flights`
+
+Prevents naming conflicts between verticals. ChatGPT always knows which vertical owns which tool.
+
+### Live Monitoring Dashboard
+`https://bettercompare.dev/dashboard`
+
+Shows:
+- Total tools + conformance score
+- Vertical health (green/amber/red)
+- Conformance violations with fix suggestions
+- Live trace timeline
+- Session flows
+- Top tools by usage
+
+### Session-Level Insights
+`GET /sessions` tracks tool usage across a conversation:
+
+```json
+{
+  "session_id": "sess_abc123",
+  "flow": "internet__compare_internet_offers → travel__search_flights",
+  "total_calls": 2,
+  "verticals_used": ["internet", "travel"]
+}
+```
+
+### Structured Tracing
+Every tool call gets a `correlation_id` with per-step latency:
+
+```json
+{
+  "correlation_id": "req_a3f9",
+  "tool_name": "internet__compare_internet_offers",
+  "total_ms": 142,
+  "steps": [
+    {"name": "conformance", "at_ms": 4},
+    {"name": "vertical_call", "at_ms": 11}
+  ],
+  "status": "ok"
+}
 ```
 
 ---
 
-## 💻 Tech Stack
+## 🔒 Security Considerations
 
-### Proxy MCP
-
-* FastAPI (Python)
-* Pydantic (schema validation)
-* httpx (communication with vertical MCPs)
-* Redis (optional caching & tracing)
-
-### Vertical MCPs
-
-* FastAPI microservices
-* independent tool schemas
-* mock or real logic
+- **Tool exposure**: Conformance layer blocks admin/debug tools from leaking to ChatGPT
+- **Input validation**: JSON Schema validation on every tool call
+- **Trust boundaries**: Proxy trusts vertical responses at application level. Production would use mTLS between proxy and verticals
+- **No auth on proxy**: Correct for developer/connector mode. Production would add API key or OAuth at gateway layer
+- **What to harden next**: Rate limiting per session, request size limits, circuit breakers for unreachable verticals, audit logging
 
 ---
 
-# 4. ⭐ Core Features
+## ☁️ Deployment
 
----
+Runs as a single Docker container on Railway:
 
-## 🔀 4.1 Cross-Vertical Routing
-
-The proxy automatically determines which vertical should handle a request.
-
-### Example
-
-User:
-
-> “I need cheap internet for students”
-
-Routing:
-→ Internet MCP
-
----
-
-## ⚠️ 4.2 Tool Ambiguity Handling
-
-Problem:
-Different verticals may expose similarly named tools.
-
-### Solution
-
-* metadata tagging (intent categories)
-* routing based on:
-
-  * user query
-  * conversation history
-  * vertical context
-
-👉 Best-effort disambiguation (not 100% solvable by design)
-
----
-
-## 📡 4.3 Incremental / Streaming Responses
-
-Inspired by the previous BetterSurf system:
-
-* fast providers respond first
-* slower providers follow
-* results are streamed progressively
-
-Benefits:
-
-* faster perceived performance
-* improved UX inside ChatGPT
-
----
-
-## 🛡️ 4.4 Conformance Layer
-
-Before exposing tools:
-
-* schema validation
-* input sanitization
-* normalization of outputs
-
-Ensures compatibility with ChatGPT Apps SDK expectations.
-
----
-
-## 📊 4.5 Observability & Tracing
-
-Each request includes:
-
-* correlation ID
-* latency per vertical
-* error tracking
-
-Example:
-
-```id="c1p7xa"
-trace_id=abc123
-intent=internet
-routed_to=internet-mcp
-latency=420ms
+```bash
+# Local
+docker build -t bettercompare .
+docker run -p 8787:8787 bettercompare
 ```
 
----
-
-## 🧪 4.6 Per-Vertical Testing Mode
-
-Vertical teams can test their tools via the proxy in isolation.
-
-### Example
-
-```id="rd84ys"
-X-Vertical-Test: internet
-```
-
-Result:
-
-* only that vertical is exposed to ChatGPT
-* enables realistic QA flows
+Deployed at: **https://bettercompare.dev**
 
 ---
 
-# 5. 🔒 Security Considerations
+## 🚧 Known Limitations & Trade-offs
 
-* proxy acts as strict trust boundary
-* no direct exposure of vertical MCPs
-* schema-based input validation
-* secrets remain server-side
-* future: rate limiting & auth layer
+| What | Simplified | Production improvement |
+|---|---|---|
+| Trace storage | In-memory | ClickHouse or Grafana Tempo |
+| Session state | In-memory | Redis with TTL |
+| Vertical auth | None | mTLS per vertical |
+| Ambiguity resolution | Namespacing only | ML-based intent classifier |
+| Conformance scoring | Heuristic | ML-assisted against ChatGPT behavior logs |
 
----
-
-# 6. ☁️ Deployment
-
-### Proxy MCP
-
-* publicly deployed at `<URL>`
-* accessible by ChatGPT / MCP Inspector
-
-### Vertical MCPs
-
-* deployed internally
-* not publicly accessible
+**Cross-vertical ambiguity** cannot be fully solved. Namespacing prevents collisions but "find me a deal for my trip" could match travel or insurance. Current mitigation: clear tool descriptions + namespacing.
 
 ---
 
-# 7. 🧪 Testing
+## 🧠 Key Design Decisions
 
-* unit tests for routing logic
-* integration tests for proxy ↔ vertical interaction
-* mock MCP servers for deterministic testing
+**Proxy as Gatekeeper** — All tools pass through validation before exposure. Vertical teams get structured, actionable feedback — not just rejection.
 
----
+**Vertical Independence** — Each vertical owns its tools and schemas. The proxy never assumes a global naming scheme.
 
-# 8. ✨ Optional Features
+**Stability over Flexibility** — The proxy absorbs breaking changes so ChatGPT remains stable after review approval.
 
-### Implemented
-
-* cross-vertical routing system
-* ambiguity handling via metadata
-* structured feedback system
-* per-vertical testing mode
-
-### Potential Extensions
-
-* LLM-assisted routing improvements
-* tool ranking system
-* advanced monitoring dashboard
+**Separation of Concerns** — MCP protocol layer is separate from platform logic (conformance, routing, monitoring) so the core could be reused with other MCP-compatible hosts like Claude.
 
 ---
 
-# 9. 🔮 Future Improvements
+*Made with ❤️ by Julia Goihman*
+*GenDev9 – CHECK24 ChatGPT App Challenge*
 
-* smarter intent detection using embeddings
-* automatic schema adaptation layer
-* persistent analytics for conversations
-* improved ambiguity resolution
+   
 
----
 
-# 10. 🎥 Video
 
-📺 **Demo Video:** `<VIDEO_LINK>`
-
-Includes:
-
-* architecture explanation
-* routing demo
-* proxy + vertical interaction
-* key design decisions
-
----
-
-# 11. 🧠 Key Design Decisions
-
-### Proxy as Gatekeeper
-
-All tools must pass through validation and filtering before exposure.
-
-### Vertical Independence
-
-Each vertical remains fully decoupled and independently maintainable.
-
-### Stability over Flexibility
-
-The proxy protects ChatGPT from breaking changes in vertical MCPs.
-
----
-
-# 12. 🚧 Known Limitations
-
-* ambiguity between similar tools cannot be fully eliminated
-* routing is heuristic-based (not perfect)
-* mock verticals do not reflect full production complexity
-
----
-
-# ❤️ Final Notes
-
-OmniCompare MCP demonstrates how a **multi-product platform like CHECK24** can integrate seamlessly into ChatGPT using a **single, well-structured MCP proxy**.
-
-The architecture is designed for:
-
-* scalability
-* maintainability
-* future extensibility to other MCP-compatible hosts
-
----
-
-**Made with ❤️ by Julia Goihman**
