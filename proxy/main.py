@@ -47,8 +47,6 @@ app.mount("/static",
     StaticFiles(directory=os.path.join(os.path.dirname(__file__), "dashboard")),
     name="static")
 
-# ─── Streamable HTTP MCP Endpoint ─────────────────────────────────────────────
-
 @app.post("/mcp")
 async def mcp(request: Request):
     body = await request.json()
@@ -60,7 +58,6 @@ async def mcp(request: Request):
         request.headers.get("x-vertical")
     )
 
-    # Check if client accepts SSE
     accept = request.headers.get("accept", "")
     use_sse = "text/event-stream" in accept
 
@@ -91,8 +88,6 @@ async def mcp(request: Request):
         )
 
     return JSONResponse(result)
-
-# ─── MCP Lifecycle ────────────────────────────────────────────────────────────
 
 def _initialize(req_id):
     return {
@@ -174,8 +169,6 @@ async def _tools_call(req_id, params, headers={}):
 def _error(req_id, code, message):
     return {"jsonrpc": "2.0", "id": req_id, "error": {"code": code, "message": message}}
 
-# ─── Platform Endpoints ───────────────────────────────────────────────────────
-
 @app.get("/health")
 async def health():
     results = {}
@@ -239,6 +232,7 @@ async def check_version(vertical: str):
             "deprecated": "Will be removed in next major version"
         }.get(v["status"])
     }
+
 @app.get("/openapi-schema")
 async def openapi_schema():
     tools = []
@@ -293,16 +287,17 @@ async def openapi_schema():
         "servers": [{"url": "https://bettercompare.dev"}],
         "paths": paths
     }
-    @app.post("/tools/{tool_name}/call")
+
+@app.post("/tools/{tool_name}/call")
 async def call_tool(tool_name: str, request: Request):
     body = await request.json()
-    
+
     if "__" not in tool_name:
         return JSONResponse({"error": "Invalid tool name"}, status_code=400)
-    
+
     vertical, original_name = tool_name.split("__", 1)
     url = VERTICALS.get(vertical)
-    
+
     if not url:
         return JSONResponse({"error": f"Unknown vertical: {vertical}"}, status_code=404)
 
@@ -325,6 +320,7 @@ async def call_tool(tool_name: str, request: Request):
         tracer.end(correlation_id, "error", str(e))
         stats.record_error(vertical)
         return JSONResponse({"error": str(e)}, status_code=500)
+
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard():
     path = os.path.join(os.path.dirname(__file__), "dashboard/index.html")
