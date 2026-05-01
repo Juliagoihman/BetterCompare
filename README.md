@@ -34,10 +34,12 @@ The video covers:
 ---
 
 ## 📁 Repository Structure
+
+```
 BetterCompare/
 ├── proxy/
 │   ├── main.py                  ← MCP proxy core
-│   ├── requirements.txt
+│   ├── requirements.txt         ← Python dependencies
 │   ├── conformance/
 │   │   └── engine.py            ← Rule engine (schema, safety, naming, UX)
 │   ├── monitoring/
@@ -59,8 +61,7 @@ BetterCompare/
 ├── Dockerfile
 ├── start.sh
 └── privacy.md
-
----
+```
 
 ## ✅ Challenge Requirements
 
@@ -140,28 +141,30 @@ Each violation includes a `fix` field — vertical teams know exactly what to ch
 ---
 
 ## 🏗️ Architecture
+
+```
 ChatGPT / MCP Inspector
-│
-▼
-┌─────────────────────────────────┐
-│   BetterCompare MCP Proxy       │
-│   bettercompare.dev :8787       │
-│                                 │
-│  ┌──────────┐  ┌─────────────┐  │
-│  │Conformance│  │   Routing   │  │
-│  │  Engine  │  │  + Namespace│  │
-│  └──────────┘  └─────────────┘  │
-│  ┌──────────┐  ┌─────────────┐  │
-│  │ Monitoring│  │  Feedback   │  │
-│  │ + Tracing│  │   Engine    │  │
-│  └──────────┘  └─────────────┘  │
-└───────────┬─────────────────────┘
-│ internal only
-┌─────────┼────────────┬─────────┐
-▼         ▼            ▼         ▼
-:8801     :8802        :8803     :8804
-Internet  Mobile       Travel  Insurance
----
+         │
+         ▼
+┌────────────────────────────────────┐
+│      BetterCompare MCP Proxy       │
+│        bettercompare.dev           │
+│                                    │
+│  ┌─────────────┐ ┌──────────────┐  │
+│  │ Conformance │ │   Routing    │  │
+│  │   Engine    │ │ + Namespace  │  │
+│  └─────────────┘ └──────────────┘  │
+│  ┌─────────────┐ ┌──────────────┐  │
+│  │  Monitoring │ │   Feedback   │  │
+│  │  + Tracing  │ │   Engine     │  │
+│  └─────────────┘ └──────────────┘  │
+└──────────────┬─────────────────────┘
+               │ internal only
+    ┌──────────┼──────────┬──────────┐
+    ▼          ▼          ▼          ▼
+ :8801      :8802      :8803      :8804
+Internet   Mobile     Travel   Insurance
+```
 
 ## 🔌 API Reference
 
