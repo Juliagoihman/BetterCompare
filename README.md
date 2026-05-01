@@ -213,7 +213,7 @@ All tools are namespaced as `vertical__tool_name`:
 Prevents naming conflicts between verticals. ChatGPT always knows which vertical owns which tool.
 
 ### Live Monitoring Dashboard
-![BetterCompare Dashboard](dashboard-preview.png)
+![BetterCompare Dashboard](BetterCompareDashboard.png.jpg)
 `https://bettercompare.dev/dashboard`
 
 Shows:
