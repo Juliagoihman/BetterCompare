@@ -373,12 +373,21 @@ async def chat(request: Request):
         vertical, original_name = tool_name.split("__", 1)
         url = VERTICALS.get(vertical)
 
+        # Track in tracer + stats + sessions
+        correlation_id = str(uuid.uuid4())[:8]
+        tracer.start(correlation_id, tool_name, vertical)
+        tracer.step(correlation_id, "vertical_call")
+
         async with httpx.AsyncClient(timeout=10.0) as http:
             res = await http.post(
                 f"{url}/tools/{original_name}/call",
                 json={"arguments": arguments}
             )
             tool_result = res.json()
+
+        tracer.end(correlation_id, "ok")
+        stats.record_call(vertical, tool_name)
+        session_store.record("ai-chat", tool_name, vertical, "ok")
 
         messages.append(message)
         messages.append({
