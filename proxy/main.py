@@ -332,63 +332,50 @@ async def chat(request: Request):
 
     openai_client = OpenAI(api_key=api_key)
 
-    # Get tools from verticals
-    tools = []
-    async with httpx.AsyncClient(timeout=5.0) as http:
-        for vertical, url in VERTICALS.items():
-            try:
-                res = await http.get(f"{url}/tools")
-                raw_tools = res.json()
-                for tool in raw_tools:
-                    report = review_tool(tool, vertical)
-                    if report["status"] != "blocked":
-                        tools.append({
-                            "type": "function",
-                            "function": {
-                                "name": f"{vertical}__{tool['name']}",
-                                "description": tool.get("description", ""),
-                                "parameters": tool.get("input_schema", {})
-                            }
-                        })
-            except:
-                pass
+    # ── Step 1: Get tools via MCP protocol ──
+    mcp_tools_response = await _tools_list(1)
+    mcp_tools = mcp_tools_response.get("result", {}).get("tools", [])
 
-    # Call OpenAI with tools
+    # Convert MCP tools to OpenAI format
+    openai_tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": tool["name"],
+                "description": tool.get("description", ""),
+                "parameters": tool.get("inputSchema", {})
+            }
+        }
+        for tool in mcp_tools
+    ]
+
+    # ── Step 2: Ask OpenAI ──
     messages = [{"role": "user", "content": user_message}]
     response = openai_client.chat.completions.create(
         model="gpt-4o-mini",
         messages=messages,
-        tools=tools,
+        tools=openai_tools,
         tool_choice="auto"
     )
 
     message = response.choices[0].message
 
-    # If OpenAI wants to call a tool
+    # ── Step 3: If OpenAI wants to call a tool → use MCP ──
     if message.tool_calls:
         tool_call = message.tool_calls[0]
         tool_name = tool_call.function.name
         arguments = json.loads(tool_call.function.arguments)
 
-        vertical, original_name = tool_name.split("__", 1)
-        url = VERTICALS.get(vertical)
+        # Call tool via MCP protocol
+        mcp_result = await _tools_call(
+            req_id=1,
+            params={"name": tool_name, "arguments": arguments},
+            headers={"x-session-id": "ai-chat"}
+        )
 
-        # Track in tracer + stats + sessions
-        correlation_id = str(uuid.uuid4())[:8]
-        tracer.start(correlation_id, tool_name, vertical)
-        tracer.step(correlation_id, "vertical_call")
+        tool_result = mcp_result.get("result", {})
 
-        async with httpx.AsyncClient(timeout=10.0) as http:
-            res = await http.post(
-                f"{url}/tools/{original_name}/call",
-                json={"arguments": arguments}
-            )
-            tool_result = res.json()
-
-        tracer.end(correlation_id, "ok")
-        stats.record_call(vertical, tool_name)
-        session_store.record("ai-chat", tool_name, vertical, "ok")
-
+        # ── Step 4: Get final answer from OpenAI ──
         messages.append(message)
         messages.append({
             "role": "tool",
@@ -408,7 +395,7 @@ async def chat(request: Request):
         }
 
     return {"response": message.content, "tool_used": None}
-
+    
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard():
     path = os.path.join(os.path.dirname(__file__), "dashboard/index.html")
