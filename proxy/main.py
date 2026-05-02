@@ -150,6 +150,7 @@ async def _tools_call(req_id, params, headers={}):
 
     correlation_id = str(uuid.uuid4())[:8]
     tracer.start(correlation_id, tool_name, vertical)
+    call_start = datetime.utcnow()
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
@@ -161,13 +162,14 @@ async def _tools_call(req_id, params, headers={}):
             result = res.json()
             tracer.end(correlation_id, "ok")
             stats.record_call(vertical, tool_name)
-            
-session_id = (
-    headers.get("mcp-session-id") or
-    headers.get("x-session-id") or
-    "anonymous"
-)
-            session_store.record(session_id, tool_name, vertical, "ok")
+
+            latency_ms = round((datetime.utcnow() - call_start).total_seconds() * 1000)
+            session_id = (
+                headers.get("mcp-session-id") or
+                headers.get("x-session-id") or
+                "anonymous"
+            )
+            session_store.record(session_id, tool_name, vertical, "ok", latency_ms)
 
             return {"jsonrpc": "2.0", "id": req_id, "result": result}
 
@@ -217,10 +219,45 @@ async def sessions(session_id: str = None):
         return s
     return session_store.get_all()
 
+@app.post("/sessions/clear")
+async def clear_sessions():
+    session_store.clear()
+    return {"status": "cleared", "message": "All sessions reset"}
+
+@app.post("/feedback/clear")
+async def clear_feedback():
+    feedback_store.clear()
+    return {"status": "cleared", "message": "Feedback store reset"}
+
 @app.post("/reload")
 async def reload():
     await _load_tools()
     return {"status": "reloaded", "message": "Tool catalog refreshed"}
+
+@app.post("/validate")
+async def validate_tool(request: Request):
+    body = await request.json()
+    tool = body.get("tool", {})
+    vertical = body.get("vertical", "unknown")
+
+    if not tool:
+        return JSONResponse({"error": "No tool provided"}, status_code=400)
+
+    report = review_tool(tool, vertical)
+
+    return {
+        "tool_name": tool.get("name", "unknown"),
+        "vertical": vertical,
+        "status": report["status"],
+        "score": report["score"],
+        "violations": report["violations"],
+        "summary": {
+            "errors": len([v for v in report["violations"] if v["severity"] == "ERROR"]),
+            "warnings": len([v for v in report["violations"] if v["severity"] == "WARNING"]),
+            "passed": len(report["violations"]) == 0
+        },
+        "checked_at": report["checked_at"]
+    }
 
 @app.get("/versions")
 async def versions():
@@ -314,6 +351,7 @@ async def call_tool(vertical: str, tool_name: str, request: Request):
     qualified_name = f"{vertical}__{tool_name}"
     correlation_id = str(uuid.uuid4())[:8]
     tracer.start(correlation_id, qualified_name, vertical)
+    call_start = datetime.utcnow()
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
@@ -325,7 +363,8 @@ async def call_tool(vertical: str, tool_name: str, request: Request):
             result = res.json()
             tracer.end(correlation_id, "ok")
             stats.record_call(vertical, qualified_name)
-            session_store.record("chatgpt", qualified_name, vertical, "ok")
+            latency_ms = round((datetime.utcnow() - call_start).total_seconds() * 1000)
+            session_store.record("chatgpt", qualified_name, vertical, "ok", latency_ms)
             return result
     except Exception as e:
         tracer.end(correlation_id, "error", str(e))
@@ -346,7 +385,6 @@ async def chat(request: Request):
 
     openai_client = OpenAI(api_key=api_key)
 
-    # Get tools via MCP protocol
     mcp_tools_response = await _tools_list(1)
     mcp_tools = mcp_tools_response.get("result", {}).get("tools", [])
 
@@ -404,41 +442,8 @@ async def chat(request: Request):
         }
 
     return {"response": message.content, "tool_used": None}
-    
-@app.post("/feedback/clear")
-async def clear_feedback():
-    feedback_store.clear()
-    return {"status": "cleared", "message": "Feedback store reset"}
+
 @app.get("/dashboard", response_class=HTMLResponse)
-@app.post("/sessions/clear")
-async def clear_sessions():
-    session_store.clear()
-    return {"status": "cleared", "message": "All sessions reset"}
-
-@app.post("/validate")
-async def validate_tool(request: Request):
-    body = await request.json()
-    tool = body.get("tool", {})
-    vertical = body.get("vertical", "unknown")
-
-    if not tool:
-        return JSONResponse({"error": "No tool provided"}, status_code=400)
-
-    report = review_tool(tool, vertical)
-
-    return {
-        "tool_name": tool.get("name", "unknown"),
-        "vertical": vertical,
-        "status": report["status"],
-        "score": report["score"],
-        "violations": report["violations"],
-        "summary": {
-            "errors": len([v for v in report["violations"] if v["severity"] == "ERROR"]),
-            "warnings": len([v for v in report["violations"] if v["severity"] == "WARNING"]),
-            "passed": len(report["violations"]) == 0
-        },
-        "checked_at": report["checked_at"]
-    }
 async def dashboard():
     path = os.path.join(os.path.dirname(__file__), "dashboard/index.html")
     with open(path) as f:
