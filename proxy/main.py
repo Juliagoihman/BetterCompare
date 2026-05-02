@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from catalog.versions import get_version_manifest
 from monitoring.session_store import session_store
+from openai import OpenAI
 import httpx
 import uuid
 import os
@@ -316,7 +317,85 @@ async def call_tool(vertical: str, tool_name: str, request: Request):
         tracer.end(correlation_id, "error", str(e))
         stats.record_error(vertical)
         return JSONResponse({"error": str(e)}, status_code=500)
+@app.post("/chat")
+async def chat(request: Request):
+    body = await request.json()
+    user_message = body.get("message", "")
+    
+    if not user_message:
+        return JSONResponse({"error": "No message provided"}, status_code=400)
+
+    openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+    
+    # Get tools from proxy
+    tools = []
+    async with httpx.AsyncClient(timeout=5.0) as http:
+        for vertical, url in VERTICALS.items():
+            try:
+                res = await http.get(f"{url}/tools")
+                raw_tools = res.json()
+                for tool in raw_tools:
+                    report = review_tool(tool, vertical)
+                    if report["status"] != "blocked":
+                        tools.append({
+                            "type": "function",
+                            "function": {
+                                "name": f"{vertical}__{tool['name']}",
+                                "description": tool.get("description", ""),
+                                "parameters": tool.get("input_schema", {})
+                            }
+                        })
+            except:
+                pass
+
+    # Call OpenAI with tools
+    messages = [{"role": "user", "content": user_message}]
+    response = openai_client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=messages,
+        tools=tools,
+        tool_choice="auto"
+    )
+
+    message = response.choices[0].message
+
+    # If OpenAI wants to call a tool
+    if message.tool_calls:
+        tool_call = message.tool_calls[0]
+        tool_name = tool_call.function.name
+        arguments = json.loads(tool_call.function.arguments)
+
+        # Call the tool via proxy
+        vertical, original_name = tool_name.split("__", 1)
+        url = VERTICALS.get(vertical)
         
+        async with httpx.AsyncClient(timeout=10.0) as http:
+            res = await http.post(
+                f"{url}/tools/{original_name}/call",
+                json={"arguments": arguments}
+            )
+            tool_result = res.json()
+
+        # Get final response from OpenAI
+        messages.append(message)
+        messages.append({
+            "role": "tool",
+            "tool_call_id": tool_call.id,
+            "content": json.dumps(tool_result)
+        })
+        
+        final_response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages
+        )
+        
+        return {
+            "response": final_response.choices[0].message.content,
+            "tool_used": tool_name,
+            "tool_result": tool_result
+        }
+
+    return {"response": message.content, "tool_used": None}        
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard():
     path = os.path.join(os.path.dirname(__file__), "dashboard/index.html")
