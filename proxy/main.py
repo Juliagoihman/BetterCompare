@@ -215,7 +215,13 @@ async def reload():
 
 @app.get("/versions")
 async def versions():
-    return get_version_manifest()
+    from conformance.engine import VERSION_POLICY, CURRENT_VERSION
+    manifest = get_version_manifest()
+    manifest["conformance_policy"] = {
+        "current": CURRENT_VERSION,
+        "policies": VERSION_POLICY
+    }
+    return manifest
 
 @app.get("/versions/check")
 async def check_version(vertical: str):
