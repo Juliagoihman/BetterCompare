@@ -8,11 +8,11 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #f0f4f8; color: #1a2332; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
   
-  .header { background: linear-gradient(135deg, #003087 0%, #0050c8 100%); padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 12px rgba(0,48,135,0.3); }
-  .header-left { display: flex; align-items: center; gap: 16px; }
-  .header-logo { height: 72px; border-radius: 12px; background: white; padding: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
-  .header-title { color: white; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
-  .header-subtitle { color: rgba(255,255,255,0.75); font-size: 12px; margin-top: 3px; }
+  .header { background: linear-gradient(135deg, #003087 0%, #0050c8 100%); padding: 1.25rem 2rem; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 12px rgba(0,48,135,0.3); }
+  .header-left { display: flex; align-items: center; gap: 20px; }
+  .header-logo { height: 84px; border-radius: 14px; background: white; padding: 7px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+  .header-title { color: white; font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+  .header-subtitle { color: rgba(255,255,255,0.75); font-size: 12px; margin-top: 4px; }
   .header-right { display: flex; align-items: center; gap: 12px; }
   .live-badge { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: white; font-size: 11px; padding: 5px 12px; border-radius: 20px; display: flex; align-items: center; gap: 6px; }
   .live-dot { width: 7px; height: 7px; background: #4ade80; border-radius: 50%; animation: pulse 1.5s infinite; }
@@ -27,7 +27,6 @@
   .mcard:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,80,200,0.12); }
   .mcard.green { border-top-color: #16a34a; }
   .mcard.amber { border-top-color: #d97706; }
-  .mcard.red { border-top-color: #dc2626; }
   .mcard-label { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: #64748b; margin-bottom: 8px; font-weight: 600; }
   .mcard-val { font-size: 34px; font-weight: 800; color: #1a2332; line-height: 1; }
   .mcard-val.green { color: #16a34a; }
@@ -94,22 +93,26 @@
   .sess-tool { background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
   .sess-arrow { color: #94a3b8; }
 
-  /* Chat styles */
-  .chat-messages { height: 320px; overflow-y: auto; margin-bottom: 12px; padding: 12px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 8px; }
+  /* Chat */
+  .chat-wrapper { background: linear-gradient(135deg, #eff6ff 0%, #f0f4f8 100%); border: 1.5px solid #bfdbfe; border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,80,200,0.08); }
+  .chat-wrapper h2 { font-size: 12px; font-weight: 700; color: #003087; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
+  .chat-wrapper h2::before { content: ''; display: inline-block; width: 3px; height: 14px; background: linear-gradient(180deg, #003087, #0050c8); border-radius: 2px; }
+  .chat-messages { height: 280px; overflow-y: auto; margin-bottom: 12px; padding: 12px; background: white; border-radius: 10px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 8px; }
   .chat-msg-user { display: flex; justify-content: flex-end; }
   .chat-msg-user span { background: #003087; color: white; padding: 8px 14px; border-radius: 14px 14px 2px 14px; font-size: 13px; max-width: 75%; line-height: 1.4; }
   .chat-msg-bot { display: flex; flex-direction: column; gap: 3px; }
   .chat-msg-bot .tool-badge { font-size: 10px; color: #0050c8; font-weight: 600; }
-  .chat-msg-bot span { background: white; border: 1px solid #e2e8f0; color: #1a2332; padding: 8px 14px; border-radius: 14px 14px 14px 2px; font-size: 13px; max-width: 75%; line-height: 1.4; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .chat-msg-bot span { background: #f8fafc; border: 1px solid #e2e8f0; color: #1a2332; padding: 8px 14px; border-radius: 14px 14px 14px 2px; font-size: 13px; max-width: 75%; line-height: 1.4; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
   .chat-msg-loading span { background: #f1f5f9; color: #94a3b8; padding: 8px 14px; border-radius: 14px; font-size: 13px; display: inline-block; }
   .chat-input-row { display: flex; gap: 8px; }
-  .chat-input { flex: 1; padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 13px; outline: none; transition: border .15s; }
+  .chat-input { flex: 1; padding: 10px 14px; border: 1.5px solid #bfdbfe; border-radius: 10px; font-size: 13px; outline: none; transition: border .15s; background: white; }
   .chat-input:focus { border-color: #0050c8; }
   .chat-send { background: linear-gradient(135deg, #003087, #0050c8); color: white; border: none; padding: 10px 22px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all .2s; }
   .chat-send:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,80,200,0.3); }
-  .chat-hints { margin-top: 8px; font-size: 11px; color: #94a3b8; }
-  .chat-hint { display: inline-block; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 2px 8px; border-radius: 10px; margin: 2px; cursor: pointer; font-size: 11px; }
-  .chat-hint:hover { background: #dbeafe; }
+  .chat-hints { margin-top: 10px; font-size: 11px; color: #64748b; }
+  .chat-hints span:first-child { margin-right: 6px; }
+  .chat-hint { display: inline-block; background: white; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 3px 10px; border-radius: 10px; margin: 2px; cursor: pointer; font-size: 11px; font-weight: 500; transition: all .15s; }
+  .chat-hint:hover { background: #dbeafe; border-color: #93c5fd; }
 
   .footer { text-align: center; padding: 1.5rem; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; margin-top: 1rem; }
   .footer strong { color: #003087; }
@@ -136,86 +139,91 @@
 
 <div class="main">
 
+  <!-- Metrics -->
   <div class="metrics">
     <div class="mcard">
-      <div class="mcard-label">Total Tools</div>
+      <div class="mcard-label">🔧 Total Tools</div>
       <div class="mcard-val" id="m-tools">—</div>
       <div class="mcard-sub">across all verticals</div>
     </div>
     <div class="mcard green">
-      <div class="mcard-label">Conformance Score</div>
+      <div class="mcard-label">✅ Conformance Score</div>
       <div class="mcard-val green" id="m-score">—</div>
       <div class="mcard-sub">platform average</div>
     </div>
     <div class="mcard">
-      <div class="mcard-label">Total Calls</div>
+      <div class="mcard-label">📊 Total Calls</div>
       <div class="mcard-val" id="m-calls">—</div>
       <div class="mcard-sub">since last deploy</div>
     </div>
     <div class="mcard amber">
-      <div class="mcard-label">Error Rate</div>
+      <div class="mcard-label">⚠️ Error Rate</div>
       <div class="mcard-val amber" id="m-errors">—</div>
       <div class="mcard-sub">across all verticals</div>
     </div>
   </div>
 
-  <div class="grid-2">
-    <div class="panel">
-      <h2>Vertical Health</h2>
-      <div id="vertical-list">Loading...</div>
-    </div>
-    <div class="panel">
-      <h2>Conformance Violations</h2>
-      <div id="violations-list">Loading...</div>
-    </div>
-  </div>
-
-  <div class="panel-full">
-    <h2>Live Trace Timeline</h2>
-    <div id="trace-list">Loading...</div>
-  </div>
-
-  <div class="grid-2">
-    <div class="panel">
-      <h2>Tool Catalog</h2>
-      <div class="filter-row" id="cat-filters">
-        <button class="filter-btn active" onclick="filterCat('all',this)">All</button>
-      </div>
-      <div id="catalog-list">Loading...</div>
-    </div>
-    <div class="panel">
-      <h2>Session Flows</h2>
-      <div id="session-list">Loading...</div>
-      <br>
-      <h2>Top Tools by Usage</h2>
-      <div id="top-tools">Loading...</div>
-    </div>
-  </div>
-
-  <!-- AI Chat -->
-  <div class="panel-full">
-    <h2>🤖 AI Chat — Talk to your verticals</h2>
+  <!-- AI Chat — oben für schnellen Zugriff -->
+  <div class="chat-wrapper">
+    <h2>🤖 AI Assistant — Ask BetterCompare anything</h2>
     <div class="chat-messages" id="chat-messages">
       <div class="chat-msg-bot">
         <span>👋 Hi! I'm BetterCompare. Ask me to compare internet offers, search flights, find hotels, or compare mobile plans!</span>
       </div>
     </div>
     <div class="chat-input-row">
-      <input 
+      <input
         class="chat-input"
-        id="chat-input" 
-        type="text" 
+        id="chat-input"
+        type="text"
         placeholder="z.B. Compare internet offers for Munich..."
         onkeydown="if(event.key==='Enter')sendChat()"
       >
       <button class="chat-send" onclick="sendChat()">Send →</button>
     </div>
     <div class="chat-hints">
-      Try:
-      <span class="chat-hint" onclick="setChat('Compare internet offers for Munich')">Compare internet for Munich</span>
-      <span class="chat-hint" onclick="setChat('Search flights from Berlin to Paris on 2026-06-01')">Flights Berlin → Paris</span>
-      <span class="chat-hint" onclick="setChat('Compare mobile plans with at least 10GB data')">Mobile plans 10GB</span>
-      <span class="chat-hint" onclick="setChat('Search hotels in Barcelona for 2 guests')">Hotels in Barcelona</span>
+      <span>Try:</span>
+      <span class="chat-hint" onclick="setChat('Compare internet offers for Munich')">🌐 Internet Munich</span>
+      <span class="chat-hint" onclick="setChat('Search flights from Berlin to Paris on 2026-06-01')">✈️ Flights Berlin → Paris</span>
+      <span class="chat-hint" onclick="setChat('Compare mobile plans with at least 10GB data')">📱 Mobile 10GB</span>
+      <span class="chat-hint" onclick="setChat('Search hotels in Barcelona for 2 guests')">🏨 Hotels Barcelona</span>
+      <span class="chat-hint" onclick="setChat('Compare insurance plans for health')">🛡️ Insurance</span>
+    </div>
+  </div>
+
+  <!-- Vertical Health + Violations -->
+  <div class="grid-2">
+    <div class="panel">
+      <h2>🟢 Vertical Health</h2>
+      <div id="vertical-list">Loading...</div>
+    </div>
+    <div class="panel">
+      <h2>⚠️ Conformance Violations</h2>
+      <div id="violations-list">Loading...</div>
+    </div>
+  </div>
+
+  <!-- Live Traces -->
+  <div class="panel-full">
+    <h2>📡 Live Trace Timeline</h2>
+    <div id="trace-list">Loading...</div>
+  </div>
+
+  <!-- Tool Catalog + Sessions -->
+  <div class="grid-2">
+    <div class="panel">
+      <h2>📋 Tool Catalog</h2>
+      <div class="filter-row" id="cat-filters">
+        <button class="filter-btn active" onclick="filterCat('all',this)">All</button>
+      </div>
+      <div id="catalog-list">Loading...</div>
+    </div>
+    <div class="panel">
+      <h2>🔄 Session Flows</h2>
+      <div id="session-list">Loading...</div>
+      <br>
+      <h2>🏆 Top Tools by Usage</h2>
+      <div id="top-tools">Loading...</div>
     </div>
   </div>
 
@@ -319,7 +327,7 @@ function filterCat(f, btn) {
 function renderTraces(traces) {
   const list = document.getElementById('trace-list');
   if (!traces.length) {
-    list.innerHTML = '<div style="color:#94a3b8;font-size:12px">No traces yet — call /mcp to generate traces</div>';
+    list.innerHTML = '<div style="color:#94a3b8;font-size:12px">No traces yet — use the AI chat or call /mcp to generate traces</div>';
     return;
   }
   list.innerHTML = traces.slice(0,6).map((t,i) => `
@@ -350,7 +358,7 @@ function toggleExpand(i) {
 function renderSessions(sessions) {
   const list = document.getElementById('session-list');
   if (!sessions.length) {
-    list.innerHTML = '<div style="color:#94a3b8;font-size:12px">No sessions yet</div>';
+    list.innerHTML = '<div style="color:#94a3b8;font-size:12px">No sessions yet — start chatting!</div>';
     return;
   }
   list.innerHTML = sessions.slice(0,5).map(s => `
@@ -369,14 +377,13 @@ function renderStats(s) {
     <div class="v-row">
       <span class="mono" style="flex:1">${name}</span>
       <span style="font-size:11px;color:#64748b;background:#f1f5f9;padding:1px 8px;border-radius:10px">${count} calls</span>
-    </div>`).join('') : '<div style="color:#94a3b8;font-size:12px">No calls yet</div>';
+    </div>`).join('') : '<div style="color:#94a3b8;font-size:12px">No calls yet — try the AI chat!</div>';
 }
 
 function tick() {
   document.getElementById('live-time').textContent = new Date().toLocaleTimeString();
 }
 
-// Chat functions
 function setChat(msg) {
   document.getElementById('chat-input').value = msg;
   sendChat();
@@ -421,7 +428,10 @@ async function sendChat() {
         <span>${data.response || data.error || 'No response'}</span>
       </div>`;
     messages.scrollTop = messages.scrollHeight;
+
     loadAll();
+    setTimeout(loadAll, 2000);
+    setTimeout(loadAll, 4000);
 
   } catch(e) {
     document.getElementById(loadingId)?.remove();
@@ -432,10 +442,7 @@ async function sendChat() {
   }
 }
 
-// Refresh immediately and again after 2 seconds
 loadAll();
-setTimeout(loadAll, 2000);
-setTimeout(loadAll, 4000);
 tick();
 setInterval(tick, 1000);
 setInterval(loadAll, 10000);
