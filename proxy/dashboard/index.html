@@ -94,6 +94,23 @@
   .sess-tool { background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
   .sess-arrow { color: #94a3b8; }
 
+  /* Chat styles */
+  .chat-messages { height: 320px; overflow-y: auto; margin-bottom: 12px; padding: 12px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 8px; }
+  .chat-msg-user { display: flex; justify-content: flex-end; }
+  .chat-msg-user span { background: #003087; color: white; padding: 8px 14px; border-radius: 14px 14px 2px 14px; font-size: 13px; max-width: 75%; line-height: 1.4; }
+  .chat-msg-bot { display: flex; flex-direction: column; gap: 3px; }
+  .chat-msg-bot .tool-badge { font-size: 10px; color: #0050c8; font-weight: 600; }
+  .chat-msg-bot span { background: white; border: 1px solid #e2e8f0; color: #1a2332; padding: 8px 14px; border-radius: 14px 14px 14px 2px; font-size: 13px; max-width: 75%; line-height: 1.4; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .chat-msg-loading span { background: #f1f5f9; color: #94a3b8; padding: 8px 14px; border-radius: 14px; font-size: 13px; display: inline-block; }
+  .chat-input-row { display: flex; gap: 8px; }
+  .chat-input { flex: 1; padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 13px; outline: none; transition: border .15s; }
+  .chat-input:focus { border-color: #0050c8; }
+  .chat-send { background: linear-gradient(135deg, #003087, #0050c8); color: white; border: none; padding: 10px 22px; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all .2s; }
+  .chat-send:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,80,200,0.3); }
+  .chat-hints { margin-top: 8px; font-size: 11px; color: #94a3b8; }
+  .chat-hint { display: inline-block; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 2px 8px; border-radius: 10px; margin: 2px; cursor: pointer; font-size: 11px; }
+  .chat-hint:hover { background: #dbeafe; }
+
   .footer { text-align: center; padding: 1.5rem; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; margin-top: 1rem; }
   .footer strong { color: #003087; }
 </style>
@@ -118,6 +135,7 @@
 </div>
 
 <div class="main">
+
   <div class="metrics">
     <div class="mcard">
       <div class="mcard-label">Total Tools</div>
@@ -173,6 +191,34 @@
       <div id="top-tools">Loading...</div>
     </div>
   </div>
+
+  <!-- AI Chat -->
+  <div class="panel-full">
+    <h2>🤖 AI Chat — Talk to your verticals</h2>
+    <div class="chat-messages" id="chat-messages">
+      <div class="chat-msg-bot">
+        <span>👋 Hi! I'm BetterCompare. Ask me to compare internet offers, search flights, find hotels, or compare mobile plans!</span>
+      </div>
+    </div>
+    <div class="chat-input-row">
+      <input 
+        class="chat-input"
+        id="chat-input" 
+        type="text" 
+        placeholder="z.B. Compare internet offers for Munich..."
+        onkeydown="if(event.key==='Enter')sendChat()"
+      >
+      <button class="chat-send" onclick="sendChat()">Send →</button>
+    </div>
+    <div class="chat-hints">
+      Try:
+      <span class="chat-hint" onclick="setChat('Compare internet offers for Munich')">Compare internet for Munich</span>
+      <span class="chat-hint" onclick="setChat('Search flights from Berlin to Paris on 2026-06-01')">Flights Berlin → Paris</span>
+      <span class="chat-hint" onclick="setChat('Compare mobile plans with at least 10GB data')">Mobile plans 10GB</span>
+      <span class="chat-hint" onclick="setChat('Search hotels in Barcelona for 2 guests')">Hotels in Barcelona</span>
+    </div>
+  </div>
+
 </div>
 
 <div class="footer">
@@ -328,6 +374,62 @@ function renderStats(s) {
 
 function tick() {
   document.getElementById('live-time').textContent = new Date().toLocaleTimeString();
+}
+
+// Chat functions
+function setChat(msg) {
+  document.getElementById('chat-input').value = msg;
+  sendChat();
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const messages = document.getElementById('chat-messages');
+  const message = input.value.trim();
+  if (!message) return;
+
+  messages.innerHTML += `
+    <div class="chat-msg-user">
+      <span>${message}</span>
+    </div>`;
+  input.value = '';
+  messages.scrollTop = messages.scrollHeight;
+
+  const loadingId = 'loading_' + Date.now();
+  messages.innerHTML += `
+    <div class="chat-msg-loading" id="${loadingId}">
+      <span>🤔 Thinking...</span>
+    </div>`;
+  messages.scrollTop = messages.scrollHeight;
+
+  try {
+    const res = await fetch('/chat', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({message})
+    });
+    const data = await res.json();
+    document.getElementById(loadingId)?.remove();
+
+    const toolBadge = data.tool_used
+      ? `<div class="tool-badge">🔧 Used: ${data.tool_used}</div>`
+      : '';
+
+    messages.innerHTML += `
+      <div class="chat-msg-bot">
+        ${toolBadge}
+        <span>${data.response || data.error || 'No response'}</span>
+      </div>`;
+    messages.scrollTop = messages.scrollHeight;
+    loadAll();
+
+  } catch(e) {
+    document.getElementById(loadingId)?.remove();
+    messages.innerHTML += `
+      <div class="chat-msg-bot">
+        <span style="color:#dc2626">❌ Error: ${e.message}</span>
+      </div>`;
+  }
 }
 
 loadAll();
