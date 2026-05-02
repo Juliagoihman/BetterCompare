@@ -12,7 +12,7 @@ import json
 import asyncio
 from datetime import datetime
 
-from conformance.engine import review_tool
+from conformance.engine import review_tool, VERSION_POLICY, CURRENT_VERSION
 from monitoring.tracer import tracer
 from monitoring.stats import stats
 from feedback.store import feedback_store
@@ -24,14 +24,14 @@ VERTICALS = {
     "insurance": "http://127.0.0.1:8804",
 }
 
-async def _load_tools():
+async def _load_tools(version: str = None):
     async with httpx.AsyncClient(timeout=5.0) as client:
         for vertical, url in VERTICALS.items():
             try:
                 res = await client.get(f"{url}/tools")
                 raw_tools = res.json()
                 for tool in raw_tools:
-                    report = review_tool(tool, vertical)
+                    report = review_tool(tool, vertical, version)
                     feedback_store.record(vertical, tool, report)
                     stats.record_tool(vertical, report["status"])
             except Exception as e:
@@ -59,13 +59,18 @@ async def mcp(request: Request):
         request.headers.get("x-vertical")
     )
 
+    version = (
+        request.query_params.get("version") or
+        request.headers.get("x-version")
+    )
+
     accept = request.headers.get("accept", "")
     use_sse = "text/event-stream" in accept
 
     if method == "initialize":
         result = _initialize(req_id)
     elif method == "tools/list":
-        result = await _tools_list(req_id, vertical_filter)
+        result = await _tools_list(req_id, vertical_filter, version)
     elif method == "tools/call":
         result = await _tools_call(req_id, body.get("params", {}), dict(request.headers))
     else:
@@ -104,7 +109,7 @@ def _initialize(req_id):
         }
     }
 
-async def _tools_list(req_id, vertical_filter=None):
+async def _tools_list(req_id, vertical_filter=None, version=None):
     tools = []
     verticals = {vertical_filter: VERTICALS[vertical_filter]} \
                 if vertical_filter and vertical_filter in VERTICALS \
@@ -116,7 +121,7 @@ async def _tools_list(req_id, vertical_filter=None):
                 res = await client.get(f"{url}/tools")
                 raw_tools = res.json()
                 for tool in raw_tools:
-                    report = review_tool(tool, vertical)
+                    report = review_tool(tool, vertical, version)
                     feedback_store.record(vertical, tool, report)
                     stats.record_tool(vertical, report["status"])
                     if report["status"] != "blocked":
@@ -215,7 +220,6 @@ async def reload():
 
 @app.get("/versions")
 async def versions():
-    from conformance.engine import VERSION_POLICY, CURRENT_VERSION
     manifest = get_version_manifest()
     manifest["conformance_policy"] = {
         "current": CURRENT_VERSION,
@@ -338,11 +342,10 @@ async def chat(request: Request):
 
     openai_client = OpenAI(api_key=api_key)
 
-    # ── Step 1: Get tools via MCP protocol ──
+    # Get tools via MCP protocol
     mcp_tools_response = await _tools_list(1)
     mcp_tools = mcp_tools_response.get("result", {}).get("tools", [])
 
-    # Convert MCP tools to OpenAI format
     openai_tools = [
         {
             "type": "function",
@@ -355,7 +358,6 @@ async def chat(request: Request):
         for tool in mcp_tools
     ]
 
-    # ── Step 2: Ask OpenAI ──
     messages = [{"role": "user", "content": user_message}]
     response = openai_client.chat.completions.create(
         model="gpt-4o-mini",
@@ -366,13 +368,11 @@ async def chat(request: Request):
 
     message = response.choices[0].message
 
-    # ── Step 3: If OpenAI wants to call a tool → use MCP ──
     if message.tool_calls:
         tool_call = message.tool_calls[0]
         tool_name = tool_call.function.name
         arguments = json.loads(tool_call.function.arguments)
 
-        # Call tool via MCP protocol
         mcp_result = await _tools_call(
             req_id=1,
             params={"name": tool_name, "arguments": arguments},
@@ -381,7 +381,6 @@ async def chat(request: Request):
 
         tool_result = mcp_result.get("result", {})
 
-        # ── Step 4: Get final answer from OpenAI ──
         messages.append(message)
         messages.append({
             "role": "tool",
@@ -401,7 +400,7 @@ async def chat(request: Request):
         }
 
     return {"response": message.content, "tool_used": None}
-    
+
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard():
     path = os.path.join(os.path.dirname(__file__), "dashboard/index.html")
