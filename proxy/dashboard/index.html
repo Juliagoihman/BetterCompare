@@ -90,11 +90,21 @@
   .cat-row:last-child { border-bottom: none; }
   .mono { font-family: monospace; font-size: 11px; color: #1a2332; }
 
-  .session-row { padding: 7px 0; border-bottom: 1px solid #f1f5f9; font-size: 12px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .session-row { padding: 7px 0; border-bottom: 1px solid #f1f5f9; font-size: 12px; }
   .session-row:last-child { border-bottom: none; }
-  .sess-id { font-family: monospace; font-size: 10px; color: #94a3b8; min-width: 80px; }
+  .sess-header { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .sess-id { font-family: monospace; font-size: 10px; color: #94a3b8; }
+  .sess-latency { font-size: 10px; color: #64748b; margin-left: auto; background: #f1f5f9; padding: 1px 6px; border-radius: 8px; }
+  .sess-tools { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
   .sess-tool { background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
-  .sess-arrow { color: #94a3b8; }
+  .sess-arrow { color: #94a3b8; font-size: 11px; }
+
+  /* Validate panel */
+  .validate-input { width: 100%; padding: 8px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 12px; font-family: monospace; outline: none; margin-bottom: 8px; resize: vertical; min-height: 80px; }
+  .validate-input:focus { border-color: #0050c8; }
+  .validate-btn { background: #003087; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; width: 100%; }
+  .validate-btn:hover { background: #0050c8; }
+  .validate-result { margin-top: 10px; font-size: 12px; }
 
   .chat-wrapper { background: linear-gradient(135deg, #eff6ff 0%, #f0f4f8 100%); border: 1.5px solid #bfdbfe; border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,80,200,0.08); }
   .chat-wrapper h2 { font-size: 12px; font-weight: 700; color: #003087; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
@@ -137,6 +147,7 @@
     </div>
     <button class="header-btn btn-refresh" onclick="loadAll()">↻ Refresh</button>
     <button class="header-btn btn-clear" onclick="clearAllData()">🗑 Clear Data</button>
+    <button class="header-btn btn-clear" onclick="clearSessions()">🔄 Clear Sessions</button>
   </div>
 </div>
 
@@ -165,6 +176,7 @@
     </div>
   </div>
 
+  <!-- AI Chat -->
   <div class="chat-wrapper">
     <h2>🤖 AI Assistant — Ask BetterCompare anything</h2>
     <div class="chat-messages" id="chat-messages">
@@ -192,6 +204,7 @@
     </div>
   </div>
 
+  <!-- Vertical Health + Violations -->
   <div class="grid-2">
     <div class="panel">
       <h2>🟢 Vertical Health</h2>
@@ -203,11 +216,13 @@
     </div>
   </div>
 
+  <!-- Live Traces -->
   <div class="panel-full">
     <h2>📡 Live Trace Timeline</h2>
     <div id="trace-list">Loading...</div>
   </div>
 
+  <!-- Tool Catalog + Sessions -->
   <div class="grid-2">
     <div class="panel">
       <h2>📋 Tool Catalog</h2>
@@ -222,6 +237,34 @@
       <br>
       <h2>🏆 Top Tools by Usage</h2>
       <div id="top-tools">Loading...</div>
+    </div>
+  </div>
+
+  <!-- Dry-Run Validator -->
+  <div class="grid-2">
+    <div class="panel">
+      <h2>🧪 Dry-Run Validator</h2>
+      <div style="font-size:11px;color:#64748b;margin-bottom:8px">Test a tool definition before deploying — paste JSON below</div>
+      <textarea class="validate-input" id="validate-input" placeholder='{
+  "name": "my_tool",
+  "description": "My tool description",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "query": {"type": "string"}
+    },
+    "required": ["query"]
+  }
+}'></textarea>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <input id="validate-vertical" type="text" placeholder="vertical (e.g. internet)" style="flex:1;padding:6px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;outline:none">
+        <button class="validate-btn" style="width:auto;padding:8px 16px" onclick="validateTool()">▶ Validate</button>
+      </div>
+      <div id="validate-result"></div>
+    </div>
+    <div class="panel">
+      <h2>📊 Platform Info</h2>
+      <div id="platform-info">Loading...</div>
     </div>
   </div>
 
@@ -240,22 +283,110 @@ async function fetchJSON(url) {
 }
 
 async function loadAll() {
-  const [feedback, traces, stats, sessions] = await Promise.all([
+  const [feedback, traces, stats, sessions, versions] = await Promise.all([
     fetchJSON('/feedback'),
     fetchJSON('/traces'),
     fetchJSON('/stats'),
-    fetchJSON('/sessions')
+    fetchJSON('/sessions'),
+    fetchJSON('/versions')
   ]);
   if (feedback) renderFeedback(feedback);
   if (traces) renderTraces(traces);
   if (stats) renderStats(stats);
   if (sessions) renderSessions(sessions);
+  if (versions) renderVersions(versions);
 }
 
 async function clearAllData() {
   if (!confirm('Reset all feedback and trace data?')) return;
   await fetch('/feedback/clear', {method: 'POST'});
   loadAll();
+}
+
+async function clearSessions() {
+  if (!confirm('Reset all session data?')) return;
+  await fetch('/sessions/clear', {method: 'POST'});
+  loadAll();
+}
+
+async function validateTool() {
+  const input = document.getElementById('validate-input').value.trim();
+  const vertical = document.getElementById('validate-vertical').value.trim() || 'unknown';
+  const result = document.getElementById('validate-result');
+
+  if (!input) {
+    result.innerHTML = '<div style="color:#dc2626;font-size:12px">Please paste a tool JSON first</div>';
+    return;
+  }
+
+  let tool;
+  try {
+    tool = JSON.parse(input);
+  } catch(e) {
+    result.innerHTML = '<div style="color:#dc2626;font-size:12px">❌ Invalid JSON: ' + e.message + '</div>';
+    return;
+  }
+
+  result.innerHTML = '<div style="color:#94a3b8;font-size:12px">Validating...</div>';
+
+  try {
+    const res = await fetch('/validate', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({tool, vertical})
+    });
+    const data = await res.json();
+
+    const statusColor = data.status === 'accepted' ? '#16a34a' : data.status === 'adapted' ? '#d97706' : '#dc2626';
+    const statusBg = data.status === 'accepted' ? '#dcfce7' : data.status === 'adapted' ? '#fef3c7' : '#fee2e2';
+
+    result.innerHTML = `
+      <div style="border:1px solid #e2e8f0;border-radius:8px;padding:10px;margin-top:4px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+          <span style="font-weight:700;font-size:12px">${data.tool_name}</span>
+          <span style="background:${statusBg};color:${statusColor};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">${data.status} · ${data.score}/100</span>
+        </div>
+        ${data.violations.length ? data.violations.map(v => `
+          <div style="font-size:11px;margin-bottom:4px">
+            <span style="background:#f1f5f9;padding:1px 5px;border-radius:3px;font-family:monospace;font-size:10px">${v.rule_id}</span>
+            <span style="color:${v.severity==='ERROR'?'#dc2626':'#d97706'};margin-left:4px">${v.severity}</span>
+            <div style="color:#1a2332;margin-top:2px">${v.reason}</div>
+            <div style="color:#0050c8;margin-top:1px">→ ${v.fix}</div>
+          </div>`).join('') :
+          '<div style="color:#16a34a;font-weight:700;font-size:12px">✓ All checks passed!</div>'
+        }
+      </div>`;
+  } catch(e) {
+    result.innerHTML = '<div style="color:#dc2626;font-size:12px">❌ Error: ' + e.message + '</div>';
+  }
+}
+
+function renderVersions(v) {
+  const info = document.getElementById('platform-info');
+  if (!v) return;
+  const policy = v.conformance_policy || {};
+  info.innerHTML = `
+    <div class="v-row">
+      <div style="flex:1;font-size:12px;color:#64748b">Proxy Version</div>
+      <div style="font-weight:700;font-size:12px">${v.proxy_version}</div>
+    </div>
+    <div class="v-row">
+      <div style="flex:1;font-size:12px;color:#64748b">Catalog Version</div>
+      <div style="font-weight:700;font-size:12px">${v.catalog_version}</div>
+    </div>
+    <div class="v-row">
+      <div style="flex:1;font-size:12px;color:#64748b">Active Policy</div>
+      <div style="font-weight:700;font-size:12px">${policy.current || 'v1'}</div>
+    </div>
+    ${Object.entries(v.verticals || {}).map(([name, ver]) => `
+    <div class="v-row">
+      <div style="flex:1;font-size:12px;color:#64748b">${name}</div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <span style="font-size:11px;color:#94a3b8">v${ver.version}</span>
+        <span style="background:${ver.status==='stable'?'#dcfce7':'#fef3c7'};color:${ver.status==='stable'?'#16a34a':'#d97706'};padding:1px 6px;border-radius:8px;font-size:10px;font-weight:700">${ver.status}</span>
+      </div>
+    </div>`).join('')}
+  `;
 }
 
 function renderFeedback(f) {
@@ -367,8 +498,13 @@ function renderSessions(sessions) {
   }
   list.innerHTML = sessions.slice(0,5).map(s => `
     <div class="session-row">
-      <span class="sess-id">${s.session_id}</span>
-      ${s.tool_calls.map(c=>`<span class="sess-tool">${c.tool}</span>`).join('<span class="sess-arrow">→</span>')}
+      <div class="sess-header">
+        <span class="sess-id">${s.session_id}</span>
+        ${s.avg_latency_ms ? `<span class="sess-latency">⚡ ${s.avg_latency_ms}ms avg</span>` : ''}
+      </div>
+      <div class="sess-tools">
+        ${s.tool_calls.map(c=>`<span class="sess-tool">${c.tool}</span>`).join('<span class="sess-arrow">→</span>')}
+      </div>
     </div>`).join('');
 }
 
