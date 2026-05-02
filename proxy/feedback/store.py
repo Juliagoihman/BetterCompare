@@ -71,6 +71,9 @@ class FeedbackStore:
             self._catalog,
             key=lambda x: x["score"]
         )
-
+def clear(self):
+    self._data.clear()
+    self._catalog.clear()
+    
 # Global instance
 feedback_store = FeedbackStore()
