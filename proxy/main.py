@@ -161,8 +161,12 @@ async def _tools_call(req_id, params, headers={}):
             result = res.json()
             tracer.end(correlation_id, "ok")
             stats.record_call(vertical, tool_name)
-
-            session_id = headers.get("x-session-id", "anonymous")
+            
+session_id = (
+    headers.get("mcp-session-id") or
+    headers.get("x-session-id") or
+    "anonymous"
+)
             session_store.record(session_id, tool_name, vertical, "ok")
 
             return {"jsonrpc": "2.0", "id": req_id, "result": result}
