@@ -58,6 +58,27 @@ class Stats:
             )[:10],
             "verticals": verticals
         }
+def get_all(self):
+    total_calls = sum(self._calls.values())
+    total_errors = sum(self._errors.values())
 
+    # Neu: success count
+    total_success = total_calls - total_errors
+
+    return {
+        "started_at": self._started_at,
+        "total_calls": total_calls,
+        "total_errors": total_errors,
+        "total_success": total_success,  # NEU
+        "success_rate_pct": round(
+            (total_success / total_calls * 100) if total_calls > 0 else 100, 1
+        ),  # NEU
+        "top_tools": sorted(
+            self._tool_usage.items(),
+            key=lambda x: x[1],
+            reverse=True
+        )[:10],
+        "verticals": verticals
+    }
 # Global instance
 stats = Stats()
