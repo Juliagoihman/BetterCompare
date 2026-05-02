@@ -48,6 +48,8 @@ class Tracer:
 
     def get_all(self):
         return list(self._traces)
-
+def clear(self):
+    self._traces.clear()
+    self._active.clear()
 # Global instance
 tracer = Tracer()
