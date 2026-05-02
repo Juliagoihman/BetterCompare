@@ -325,7 +325,10 @@ async def chat(request: Request):
     if not user_message:
         return JSONResponse({"error": "No message provided"}, status_code=400)
 
-    openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+  api_key = os.environ.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
+if not api_key:
+    return JSONResponse({"error": "OpenAI API key not configured"}, status_code=500)
+openai_client = OpenAI(api_key=api_key)
     
     # Get tools from proxy
     tools = []
