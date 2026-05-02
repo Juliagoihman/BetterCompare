@@ -410,7 +410,35 @@ async def clear_feedback():
     feedback_store.clear()
     return {"status": "cleared", "message": "Feedback store reset"}
 @app.get("/dashboard", response_class=HTMLResponse)
+@app.post("/sessions/clear")
+async def clear_sessions():
+    session_store.clear()
+    return {"status": "cleared", "message": "All sessions reset"}
 
+@app.post("/validate")
+async def validate_tool(request: Request):
+    body = await request.json()
+    tool = body.get("tool", {})
+    vertical = body.get("vertical", "unknown")
+
+    if not tool:
+        return JSONResponse({"error": "No tool provided"}, status_code=400)
+
+    report = review_tool(tool, vertical)
+
+    return {
+        "tool_name": tool.get("name", "unknown"),
+        "vertical": vertical,
+        "status": report["status"],
+        "score": report["score"],
+        "violations": report["violations"],
+        "summary": {
+            "errors": len([v for v in report["violations"] if v["severity"] == "ERROR"]),
+            "warnings": len([v for v in report["violations"] if v["severity"] == "WARNING"]),
+            "passed": len(report["violations"]) == 0
+        },
+        "checked_at": report["checked_at"]
+    }
 async def dashboard():
     path = os.path.join(os.path.dirname(__file__), "dashboard/index.html")
     with open(path) as f:
