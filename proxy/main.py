@@ -442,7 +442,10 @@ async def chat(request: Request):
         }
 
     return {"response": message.content, "tool_used": None}
-
+@app.post("/traces/clear")
+async def clear_traces():
+    tracer.clear()
+    return {"status": "cleared", "message": "All traces reset"}
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard():
     path = os.path.join(os.path.dirname(__file__), "dashboard/index.html")
