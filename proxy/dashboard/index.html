@@ -432,7 +432,10 @@ async function sendChat() {
   }
 }
 
+// Refresh immediately and again after 2 seconds
 loadAll();
+setTimeout(loadAll, 2000);
+setTimeout(loadAll, 4000);
 tick();
 setInterval(tick, 1000);
 setInterval(loadAll, 10000);
