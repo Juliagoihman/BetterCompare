@@ -13,11 +13,11 @@
   .header-logo { height: 84px; border-radius: 14px; background: white; padding: 7px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
   .header-title { color: white; font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
   .header-subtitle { color: rgba(255,255,255,0.75); font-size: 12px; margin-top: 4px; }
-  .header-right { display: flex; align-items: center; gap: 8px; }
+  .header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
   .live-badge { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: white; font-size: 11px; padding: 5px 12px; border-radius: 20px; display: flex; align-items: center; gap: 6px; }
   .live-dot { width: 7px; height: 7px; background: #4ade80; border-radius: 50%; animation: pulse 1.5s infinite; }
   @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
-  .header-btn { border: none; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all .2s; }
+  .header-btn { border: none; padding: 7px 14px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; transition: all .2s; white-space: nowrap; }
   .btn-refresh { background: white; color: #003087; }
   .btn-refresh:hover { background: #e8f0fe; }
   .btn-clear { background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); }
@@ -99,12 +99,10 @@
   .sess-tool { background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
   .sess-arrow { color: #94a3b8; font-size: 11px; }
 
-  /* Validate panel */
   .validate-input { width: 100%; padding: 8px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 12px; font-family: monospace; outline: none; margin-bottom: 8px; resize: vertical; min-height: 80px; }
   .validate-input:focus { border-color: #0050c8; }
-  .validate-btn { background: #003087; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; width: 100%; }
+  .validate-btn { background: #003087; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; }
   .validate-btn:hover { background: #0050c8; }
-  .validate-result { margin-top: 10px; font-size: 12px; }
 
   .chat-wrapper { background: linear-gradient(135deg, #eff6ff 0%, #f0f4f8 100%); border: 1.5px solid #bfdbfe; border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,80,200,0.08); }
   .chat-wrapper h2 { font-size: 12px; font-weight: 700; color: #003087; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
@@ -148,6 +146,7 @@
     <button class="header-btn btn-refresh" onclick="loadAll()">↻ Refresh</button>
     <button class="header-btn btn-clear" onclick="clearAllData()">🗑 Clear Data</button>
     <button class="header-btn btn-clear" onclick="clearSessions()">🔄 Clear Sessions</button>
+    <button class="header-btn btn-clear" onclick="clearTraces()">📡 Clear Traces</button>
   </div>
 </div>
 
@@ -167,16 +166,15 @@
     <div class="mcard">
       <div class="mcard-label">📊 Total Calls</div>
       <div class="mcard-val" id="m-calls">—</div>
-      <div class="mcard-sub">since last deploy</div>
+      <div class="mcard-sub" id="m-success">since last deploy</div>
     </div>
     <div class="mcard amber">
       <div class="mcard-label">⚠️ Error Rate</div>
       <div class="mcard-val amber" id="m-errors">—</div>
-      <div class="mcard-sub">across all verticals</div>
+      <div class="mcard-sub" id="m-success-rate">across all verticals</div>
     </div>
   </div>
 
-  <!-- AI Chat -->
   <div class="chat-wrapper">
     <h2>🤖 AI Assistant — Ask BetterCompare anything</h2>
     <div class="chat-messages" id="chat-messages">
@@ -204,7 +202,6 @@
     </div>
   </div>
 
-  <!-- Vertical Health + Violations -->
   <div class="grid-2">
     <div class="panel">
       <h2>🟢 Vertical Health</h2>
@@ -216,13 +213,11 @@
     </div>
   </div>
 
-  <!-- Live Traces -->
   <div class="panel-full">
     <h2>📡 Live Trace Timeline</h2>
     <div id="trace-list">Loading...</div>
   </div>
 
-  <!-- Tool Catalog + Sessions -->
   <div class="grid-2">
     <div class="panel">
       <h2>📋 Tool Catalog</h2>
@@ -240,11 +235,10 @@
     </div>
   </div>
 
-  <!-- Dry-Run Validator -->
   <div class="grid-2">
     <div class="panel">
       <h2>🧪 Dry-Run Validator</h2>
-      <div style="font-size:11px;color:#64748b;margin-bottom:8px">Test a tool definition before deploying — paste JSON below</div>
+      <div style="font-size:11px;color:#64748b;margin-bottom:8px">Test a tool definition before deploying</div>
       <textarea class="validate-input" id="validate-input" placeholder='{
   "name": "my_tool",
   "description": "My tool description",
@@ -258,7 +252,7 @@
 }'></textarea>
       <div style="display:flex;gap:8px;margin-bottom:8px">
         <input id="validate-vertical" type="text" placeholder="vertical (e.g. internet)" style="flex:1;padding:6px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;outline:none">
-        <button class="validate-btn" style="width:auto;padding:8px 16px" onclick="validateTool()">▶ Validate</button>
+        <button class="validate-btn" onclick="validateTool()">▶ Validate</button>
       </div>
       <div id="validate-result"></div>
     </div>
@@ -298,7 +292,7 @@ async function loadAll() {
 }
 
 async function clearAllData() {
-  if (!confirm('Reset all feedback and trace data?')) return;
+  if (!confirm('Reset all feedback data?')) return;
   await fetch('/feedback/clear', {method: 'POST'});
   loadAll();
 }
@@ -306,6 +300,12 @@ async function clearAllData() {
 async function clearSessions() {
   if (!confirm('Reset all session data?')) return;
   await fetch('/sessions/clear', {method: 'POST'});
+  loadAll();
+}
+
+async function clearTraces() {
+  if (!confirm('Reset all trace data?')) return;
+  await fetch('/traces/clear', {method: 'POST'});
   loadAll();
 }
 
@@ -336,7 +336,6 @@ async function validateTool() {
       body: JSON.stringify({tool, vertical})
     });
     const data = await res.json();
-
     const statusColor = data.status === 'accepted' ? '#16a34a' : data.status === 'adapted' ? '#d97706' : '#dc2626';
     const statusBg = data.status === 'accepted' ? '#dcfce7' : data.status === 'adapted' ? '#fef3c7' : '#fee2e2';
 
@@ -347,11 +346,11 @@ async function validateTool() {
           <span style="background:${statusBg};color:${statusColor};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">${data.status} · ${data.score}/100</span>
         </div>
         ${data.violations.length ? data.violations.map(v => `
-          <div style="font-size:11px;margin-bottom:4px">
+          <div style="font-size:11px;margin-bottom:6px;padding:6px;background:#f8fafc;border-radius:6px">
             <span style="background:#f1f5f9;padding:1px 5px;border-radius:3px;font-family:monospace;font-size:10px">${v.rule_id}</span>
-            <span style="color:${v.severity==='ERROR'?'#dc2626':'#d97706'};margin-left:4px">${v.severity}</span>
-            <div style="color:#1a2332;margin-top:2px">${v.reason}</div>
-            <div style="color:#0050c8;margin-top:1px">→ ${v.fix}</div>
+            <span style="color:${v.severity==='ERROR'?'#dc2626':'#d97706'};margin-left:4px;font-weight:600">${v.severity}</span>
+            <div style="color:#1a2332;margin-top:3px">${v.reason}</div>
+            <div style="color:#0050c8;margin-top:2px">→ ${v.fix}</div>
           </div>`).join('') :
           '<div style="color:#16a34a;font-weight:700;font-size:12px">✓ All checks passed!</div>'
         }
@@ -510,8 +509,10 @@ function renderSessions(sessions) {
 
 function renderStats(s) {
   document.getElementById('m-calls').textContent = (s.total_calls||0).toLocaleString();
+  document.getElementById('m-success').textContent = `✅ ${s.total_success || 0} successful`;
   const errRate = s.total_calls > 0 ? ((s.total_errors/s.total_calls)*100).toFixed(1) : '0.0';
   document.getElementById('m-errors').textContent = errRate + '%';
+  document.getElementById('m-success-rate').textContent = `${s.success_rate_pct || 100}% success rate`;
   const tools = s.top_tools || [];
   document.getElementById('top-tools').innerHTML = tools.length ? tools.map(([name, count]) => `
     <div class="v-row">
