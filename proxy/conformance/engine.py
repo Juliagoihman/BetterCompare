@@ -1,5 +1,27 @@
 from datetime import datetime
 
+# ─── Version Policy ───────────────────────────────────────────────────────────
+
+VERSION_POLICY = {
+    "v1": {
+        "allow_adaptation": True,
+        "allow_name_conflicts": True,
+        "description": "Lenient — adapts tools with issues"
+    },
+    "v2": {
+        "allow_adaptation": False,
+        "allow_name_conflicts": False,
+        "description": "Strict — blocks tools with any issues"
+    }
+}
+
+CURRENT_VERSION = "v1"
+
+def get_policy(version: str = None) -> dict:
+    return VERSION_POLICY.get(version or CURRENT_VERSION, VERSION_POLICY[CURRENT_VERSION])
+
+# ─── Rules ────────────────────────────────────────────────────────────────────
+
 RULES = [
     {
         "id": "MISSING_NAME",
@@ -54,9 +76,13 @@ RULES = [
     },
 ]
 
-def review_tool(tool: dict, vertical: str) -> dict:
+# ─── Engine ───────────────────────────────────────────────────────────────────
+
+def review_tool(tool: dict, vertical: str, version: str = None) -> dict:
+    policy = get_policy(version)
     violations = []
-    blocked = False
+    has_error = False
+    has_warning = False
 
     for rule in RULES:
         if rule["check"](tool):
@@ -69,9 +95,11 @@ def review_tool(tool: dict, vertical: str) -> dict:
             }
             violations.append(violation)
             if rule["severity"] == "ERROR":
-                blocked = True
+                has_error = True
+            elif rule["severity"] == "WARNING":
+                has_warning = True
 
-    # Compute score: start at 100, deduct per violation
+    # Compute score
     deductions = sum(
         30 if v["severity"] == "ERROR" else
         10 if v["severity"] == "WARNING" else 2
@@ -79,17 +107,22 @@ def review_tool(tool: dict, vertical: str) -> dict:
     )
     score = max(0, 100 - deductions)
 
-    # Determine status
-    if blocked:
+    # Determine status based on policy
+    if has_error:
         status = "blocked"
-    elif violations:
-        status = "adapted"
+    elif has_warning:
+        if policy["allow_adaptation"]:
+            status = "adapted"
+        else:
+            # v2 strict mode — block instead of adapt
+            status = "blocked"
     else:
         status = "accepted"
 
     return {
         "status": status,
         "score": score,
+        "policy": version or CURRENT_VERSION,
         "violations": violations,
         "checked_at": datetime.utcnow().isoformat()
     }
