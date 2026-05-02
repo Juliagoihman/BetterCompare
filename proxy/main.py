@@ -292,7 +292,7 @@ async def openapi_schema():
 @app.post("/tools/{vertical}__{tool_name}/call")
 async def call_tool(vertical: str, tool_name: str, request: Request):
     body = await request.json()
-    
+
     url = VERTICALS.get(vertical)
     if not url:
         return JSONResponse({"error": f"Unknown vertical: {vertical}"}, status_code=404)
@@ -317,20 +317,22 @@ async def call_tool(vertical: str, tool_name: str, request: Request):
         tracer.end(correlation_id, "error", str(e))
         stats.record_error(vertical)
         return JSONResponse({"error": str(e)}, status_code=500)
+
 @app.post("/chat")
 async def chat(request: Request):
     body = await request.json()
     user_message = body.get("message", "")
-    
+
     if not user_message:
         return JSONResponse({"error": "No message provided"}, status_code=400)
 
-  api_key = os.environ.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
-if not api_key:
-    return JSONResponse({"error": "OpenAI API key not configured"}, status_code=500)
-openai_client = OpenAI(api_key=api_key)
-    
-    # Get tools from proxy
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        return JSONResponse({"error": "OpenAI API key not configured"}, status_code=500)
+
+    openai_client = OpenAI(api_key=api_key)
+
+    # Get tools from verticals
     tools = []
     async with httpx.AsyncClient(timeout=5.0) as http:
         for vertical, url in VERTICALS.items():
@@ -368,10 +370,9 @@ openai_client = OpenAI(api_key=api_key)
         tool_name = tool_call.function.name
         arguments = json.loads(tool_call.function.arguments)
 
-        # Call the tool via proxy
         vertical, original_name = tool_name.split("__", 1)
         url = VERTICALS.get(vertical)
-        
+
         async with httpx.AsyncClient(timeout=10.0) as http:
             res = await http.post(
                 f"{url}/tools/{original_name}/call",
@@ -379,26 +380,26 @@ openai_client = OpenAI(api_key=api_key)
             )
             tool_result = res.json()
 
-        # Get final response from OpenAI
         messages.append(message)
         messages.append({
             "role": "tool",
             "tool_call_id": tool_call.id,
             "content": json.dumps(tool_result)
         })
-        
+
         final_response = openai_client.chat.completions.create(
             model="gpt-4o-mini",
             messages=messages
         )
-        
+
         return {
             "response": final_response.choices[0].message.content,
             "tool_used": tool_name,
             "tool_result": tool_result
         }
 
-    return {"response": message.content, "tool_used": None}        
+    return {"response": message.content, "tool_used": None}
+
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard():
     path = os.path.join(os.path.dirname(__file__), "dashboard/index.html")
