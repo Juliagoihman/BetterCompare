@@ -400,8 +400,13 @@ async def chat(request: Request):
         }
 
     return {"response": message.content, "tool_used": None}
-
+    
+@app.post("/feedback/clear")
+async def clear_feedback():
+    feedback_store.clear()
+    return {"status": "cleared", "message": "Feedback store reset"}
 @app.get("/dashboard", response_class=HTMLResponse)
+
 async def dashboard():
     path = os.path.join(os.path.dirname(__file__), "dashboard/index.html")
     with open(path) as f:
