@@ -6,7 +6,7 @@ class SessionStore:
         self._sessions = {}
         self._max = max_sessions
 
-    def record(self, session_id: str, tool_name: str, vertical: str, status: str):
+    def record(self, session_id: str, tool_name: str, vertical: str, status: str, latency_ms: int = 0):
         if session_id not in self._sessions:
             self._sessions[session_id] = {
                 "session_id": session_id,
@@ -14,7 +14,8 @@ class SessionStore:
                 "last_active": datetime.utcnow().isoformat(),
                 "tool_calls": [],
                 "verticals_used": set(),
-                "total_calls": 0
+                "total_calls": 0,
+                "qa_vertical": None
             }
 
         session = self._sessions[session_id]
@@ -22,6 +23,7 @@ class SessionStore:
             "tool": tool_name,
             "vertical": vertical,
             "status": status,
+            "latency_ms": latency_ms,
             "at": datetime.utcnow().isoformat()
         })
         session["verticals_used"].add(vertical)
@@ -33,13 +35,21 @@ class SessionStore:
             oldest = min(self._sessions, key=lambda s: self._sessions[s]["last_active"])
             del self._sessions[oldest]
 
+    def set_qa_vertical(self, session_id: str, vertical: str):
+        if session_id in self._sessions:
+            self._sessions[session_id]["qa_vertical"] = vertical
+
     def get_all(self):
         result = []
         for s in self._sessions.values():
             result.append({
                 **s,
                 "verticals_used": list(s["verticals_used"]),
-                "flow": " → ".join(c["tool"] for c in s["tool_calls"])
+                "flow": " → ".join(c["tool"] for c in s["tool_calls"]),
+                "avg_latency_ms": round(
+                    sum(c["latency_ms"] for c in s["tool_calls"]) / len(s["tool_calls"])
+                    if s["tool_calls"] else 0
+                )
             })
         return sorted(result, key=lambda x: x["last_active"], reverse=True)
 
@@ -52,6 +62,9 @@ class SessionStore:
             "verticals_used": list(s["verticals_used"]),
             "flow": " → ".join(c["tool"] for c in s["tool_calls"])
         }
+
+    def clear(self):
+        self._sessions.clear()
 
 # Global instance
 session_store = SessionStore()
