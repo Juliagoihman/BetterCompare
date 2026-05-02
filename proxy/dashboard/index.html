@@ -13,12 +13,15 @@
   .header-logo { height: 84px; border-radius: 14px; background: white; padding: 7px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
   .header-title { color: white; font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
   .header-subtitle { color: rgba(255,255,255,0.75); font-size: 12px; margin-top: 4px; }
-  .header-right { display: flex; align-items: center; gap: 12px; }
+  .header-right { display: flex; align-items: center; gap: 8px; }
   .live-badge { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: white; font-size: 11px; padding: 5px 12px; border-radius: 20px; display: flex; align-items: center; gap: 6px; }
   .live-dot { width: 7px; height: 7px; background: #4ade80; border-radius: 50%; animation: pulse 1.5s infinite; }
   @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
-  .refresh-btn { background: white; color: #003087; border: none; padding: 8px 20px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all .2s; }
-  .refresh-btn:hover { background: #e8f0fe; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+  .header-btn { border: none; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all .2s; }
+  .btn-refresh { background: white; color: #003087; }
+  .btn-refresh:hover { background: #e8f0fe; }
+  .btn-clear { background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); }
+  .btn-clear:hover { background: rgba(220,38,38,0.3); }
 
   .main { padding: 1.5rem 2rem; max-width: 1400px; margin: 0 auto; }
 
@@ -93,7 +96,6 @@
   .sess-tool { background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
   .sess-arrow { color: #94a3b8; }
 
-  /* Chat */
   .chat-wrapper { background: linear-gradient(135deg, #eff6ff 0%, #f0f4f8 100%); border: 1.5px solid #bfdbfe; border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,80,200,0.08); }
   .chat-wrapper h2 { font-size: 12px; font-weight: 700; color: #003087; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
   .chat-wrapper h2::before { content: ''; display: inline-block; width: 3px; height: 14px; background: linear-gradient(180deg, #003087, #0050c8); border-radius: 2px; }
@@ -133,13 +135,13 @@
       <div class="live-dot"></div>
       <span id="live-time">—</span>
     </div>
-    <button class="refresh-btn" onclick="loadAll()">↻ Refresh</button>
+    <button class="header-btn btn-refresh" onclick="loadAll()">↻ Refresh</button>
+    <button class="header-btn btn-clear" onclick="clearAllData()">🗑 Clear Data</button>
   </div>
 </div>
 
 <div class="main">
 
-  <!-- Metrics -->
   <div class="metrics">
     <div class="mcard">
       <div class="mcard-label">🔧 Total Tools</div>
@@ -163,7 +165,6 @@
     </div>
   </div>
 
-  <!-- AI Chat — oben für schnellen Zugriff -->
   <div class="chat-wrapper">
     <h2>🤖 AI Assistant — Ask BetterCompare anything</h2>
     <div class="chat-messages" id="chat-messages">
@@ -191,7 +192,6 @@
     </div>
   </div>
 
-  <!-- Vertical Health + Violations -->
   <div class="grid-2">
     <div class="panel">
       <h2>🟢 Vertical Health</h2>
@@ -203,13 +203,11 @@
     </div>
   </div>
 
-  <!-- Live Traces -->
   <div class="panel-full">
     <h2>📡 Live Trace Timeline</h2>
     <div id="trace-list">Loading...</div>
   </div>
 
-  <!-- Tool Catalog + Sessions -->
   <div class="grid-2">
     <div class="panel">
       <h2>📋 Tool Catalog</h2>
@@ -252,6 +250,12 @@ async function loadAll() {
   if (traces) renderTraces(traces);
   if (stats) renderStats(stats);
   if (sessions) renderSessions(sessions);
+}
+
+async function clearAllData() {
+  if (!confirm('Reset all feedback and trace data?')) return;
+  await fetch('/feedback/clear', {method: 'POST'});
+  loadAll();
 }
 
 function renderFeedback(f) {
