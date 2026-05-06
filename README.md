@@ -306,13 +306,13 @@ Deployed at: **https://bettercompare.dev**
 
 ## 🧠 Key Design Decisions
 
-**Proxy as Gatekeeper** — All tools pass through validation before exposure. Vertical teams get structured, actionable feedback — not just rejection.
+**Proxy as Gatekeeper**: All tools pass through validation before exposure. Vertical teams get structured, actionable feedback — not just rejection.
 
-**Vertical Independence** — Each vertical owns its tools and schemas. The proxy never assumes a global naming scheme.
+**Vertical Independence**: Each vertical owns its tools and schemas. The proxy never assumes a global naming scheme.
 
-**Stability over Flexibility** — The proxy absorbs breaking changes so ChatGPT remains stable after review approval.
+**Stability over Flexibility**: The proxy absorbs breaking changes so ChatGPT remains stable after review approval.
 
-**Separation of Concerns** — MCP protocol layer is separate from platform logic (conformance, routing, monitoring) so the core could be reused with other MCP-compatible hosts like Claude.
+**Separation of Concerns**: MCP protocol layer is separate from platform logic (conformance, routing, monitoring) so the core could be reused with other MCP-compatible hosts like Claude.
 
 ---
 ## Outro
