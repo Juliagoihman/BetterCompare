@@ -1,5 +1,6 @@
 # GenDev9 – CHECK24 ChatGPT App Challenge
 **BetterCompare – One Search. Every Comparison.**
+
 [🎥 Demo Video](#) · [📊 Dashboard](https://bettercompare.dev/dashboard) · [🌐 MCP Endpoint](https://bettercompare.dev/mcp)
  
 ---
