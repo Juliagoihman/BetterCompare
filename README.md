@@ -323,6 +323,7 @@ I'm happy to answer any questions about the project and welcome any feedback.
 
 
 *Made with ❤️ by Julia Goihman*
+
 *GenDev9 – CHECK24 ChatGPT App Challenge*
 
    
