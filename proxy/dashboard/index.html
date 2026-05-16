@@ -556,6 +556,8 @@ function renderStats(s) {
 }
 
 // ── Chat ───────────────────────────────────────────────────────
+let chatHistory = [];
+
 function setChat(msg) { document.getElementById('chat-input').value=msg; sendChat(); }
 
 async function sendChat() {
@@ -570,9 +572,11 @@ async function sendChat() {
   messages.innerHTML += `<div class="chat-msg-loading" id="${lid}"><span>🤔 Thinking...</span></div>`;
   messages.scrollTop = messages.scrollHeight;
   try {
-    const res = await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message})});
+    const res = await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message, history: chatHistory})});
     const data = await res.json();
     document.getElementById(lid)?.remove();
+    chatHistory.push({role: 'user', content: message});
+    if (data.response) chatHistory.push({role: 'assistant', content: data.response});
     messages.innerHTML += `<div class="chat-msg-bot">${data.tool_used?`<div class="tool-badge">🔧 Used: ${data.tool_used}</div>`:''}<span>${data.response||data.error||'No response'}</span></div>`;
     messages.scrollTop = messages.scrollHeight;
     loadAll(); setTimeout(loadAll,2000); setTimeout(loadAll,4000);
