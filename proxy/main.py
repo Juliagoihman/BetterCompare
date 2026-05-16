@@ -354,6 +354,8 @@ async def call_tool_rest(tool_path: str, request: Request):
 async def chat(request: Request):
     body = await request.json()
     user_message = body.get("message", "")
+    history = body.get("history", [])
+
     if not user_message:
         return JSONResponse({"error": "No message provided"}, status_code=400)
 
@@ -375,7 +377,12 @@ async def chat(request: Request):
         for tool in all_tools
     ]
 
-    messages = [{"role": "user", "content": user_message}]
+    # Build messages with history
+    messages = []
+    for h in history:
+        messages.append({"role": h["role"], "content": h["content"]})
+    messages.append({"role": "user", "content": user_message})
+
     response = openai_client.chat.completions.create(
         model="gpt-4o-mini",
         messages=messages,
