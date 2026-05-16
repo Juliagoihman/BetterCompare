@@ -14,12 +14,12 @@ import json
 from datetime import datetime
 from openai import OpenAI
 
-from conformance.engine import review_tool, CURRENT_VERSION
-from catalog.versions import get_version_manifest, VERTICAL_VERSIONS
-from monitoring.tracer import tracer
-from monitoring.stats import stats
-from monitoring.session_store import session_store
-from feedback.store import feedback_store
+from proxy.conformance.engine import review_tool, CURRENT_VERSION
+from proxy.catalog.versions import get_version_manifest, VERTICAL_VERSIONS
+from proxy.monitoring.tracer import tracer
+from proxy.monitoring.stats import stats
+from proxy.monitoring.session_store import session_store
+from proxy.feedback.store import feedback_store
 
 VERTICALS = {
     "internet":  "http://127.0.0.1:8801/mcp",
