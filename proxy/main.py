@@ -453,18 +453,26 @@ async def chat(request: Request):
 async def lifespan(app):
     await _register_dynamic_tools()
     yield
-from starlette.applications import Starlette
-from starlette.routing import Mount, Route
-from starlette.requests import Request as StarletteRequest
-from starlette.responses import Response
 
-# Wrap mcp_app so it handles /mcp prefix correctly
+@asynccontextmanager
+async def lifespan(app):
+    await _register_dynamic_tools()
+    yield
+
+from starlette.applications import Starlette
+from starlette.routing import Mount
+from starlette.middleware.trustedhost import TrustedHostMiddleware
+
+# MCP app läuft auf root, admin auf /api
 mcp_app = proxy.streamable_http_app()
+
+# Wrap admin unter /api prefix
+from starlette.middleware import Middleware
 
 combined = Starlette(
     routes=[
-        Mount("/mcp", app=mcp_app),
-        Mount("/", app=admin),
+        Mount("/api", app=admin),
+        Mount("/", app=mcp_app),
     ],
     lifespan=lifespan,
 )
@@ -476,4 +484,3 @@ combined.add_middleware(
 
 if __name__ == "__main__":
     uvicorn.run(combined, host="0.0.0.0", port=8787)
-
