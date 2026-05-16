@@ -1,266 +1,221 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse, HTMLResponse, StreamingResponse
+# proxy/main.py
+from mcp.server.fastmcp import FastMCP
+from mcp import ClientSession
+from mcp.client.streamable_http import streamable_http_client
+from fastapi import Request
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
-from catalog.versions import get_version_manifest
-from monitoring.session_store import session_store
-from openai import OpenAI
+from starlette.routing import Mount
+import uvicorn
 import httpx
 import uuid
 import os
 import json
-import asyncio
 from datetime import datetime
 
-from conformance.engine import review_tool, VERSION_POLICY, CURRENT_VERSION
+from conformance.engine import review_tool, CURRENT_VERSION
+from catalog.versions import get_version_manifest, VERTICAL_VERSIONS
 from monitoring.tracer import tracer
 from monitoring.stats import stats
+from monitoring.session_store import session_store
 from feedback.store import feedback_store
 
+# ─── Vertical URLs ─────────────────────────────────────────────────────────────
+
 VERTICALS = {
-    "internet":  "http://127.0.0.1:8801",
-    "mobile":    "http://127.0.0.1:8802",
-    "travel":    "http://127.0.0.1:8803",
-    "insurance": "http://127.0.0.1:8804",
+    "internet":  "http://127.0.0.1:8801/mcp",
+    "mobile":    "http://127.0.0.1:8802/mcp",
+    "travel":    "http://127.0.0.1:8803/mcp",
+    "insurance": "http://127.0.0.1:8804/mcp",
 }
 
-async def _load_tools(version: str = None):
-    async with httpx.AsyncClient(timeout=5.0) as client:
-        for vertical, url in VERTICALS.items():
-            try:
-                res = await client.get(f"{url}/tools")
-                raw_tools = res.json()
-                for tool in raw_tools:
-                    report = review_tool(tool, vertical, version)
-                    feedback_store.record(vertical, tool, report)
-                    stats.record_tool(vertical, report["status"])
-            except Exception as e:
-                stats.record_error(vertical)
+# ─── Tool loading via real MCP client ─────────────────────────────────────────
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    await _load_tools()
-    yield
-
-app = FastAPI(title="BetterCompare MCP Proxy", lifespan=lifespan)
-
-app.mount("/static",
-    StaticFiles(directory=os.path.join(os.path.dirname(__file__), "dashboard")),
-    name="static")
-
-@app.post("/mcp")
-async def mcp(request: Request):
-    body = await request.json()
-    method = body.get("method")
-    req_id = body.get("id", 1)
-
-    vertical_filter = (
-        request.query_params.get("vertical") or
-        request.headers.get("x-vertical")
-    )
-
-    version = (
-        request.query_params.get("version") or
-        request.headers.get("x-version")
-    )
-
-    accept = request.headers.get("accept", "")
-    use_sse = "text/event-stream" in accept
-
-    if method == "initialize":
-        result = _initialize(req_id)
-    elif method == "tools/list":
-        result = await _tools_list(req_id, vertical_filter, version)
-    elif method == "tools/call":
-        result = await _tools_call(req_id, body.get("params", {}), dict(request.headers))
-    else:
-        result = {
-            "jsonrpc": "2.0",
-            "id": req_id,
-            "error": {"code": -32601, "message": f"Method not found: {method}"}
-        }
-
-    if use_sse:
-        async def stream():
-            yield f"data: {json.dumps(result)}\n\n"
-        return StreamingResponse(
-            stream(),
-            media_type="text/event-stream",
-            headers={
-                "Cache-Control": "no-cache",
-                "Connection": "keep-alive",
-                "X-Accel-Buffering": "no"
-            }
-        )
-
-    return JSONResponse(result)
-
-def _initialize(req_id):
-    return {
-        "jsonrpc": "2.0",
-        "id": req_id,
-        "result": {
-            "protocolVersion": "2024-11-05",
-            "capabilities": {"tools": {"listChanged": True}},
-            "serverInfo": {
-                "name": "bettercompare-mcp-proxy",
-                "version": "1.0.0"
-            }
-        }
-    }
-
-async def _tools_list(req_id, vertical_filter=None, version=None):
+async def _fetch_tools_from_vertical(vertical: str, url: str) -> list:
+    """Connect to a vertical MCP server and fetch its tools."""
     tools = []
-    verticals = {vertical_filter: VERTICALS[vertical_filter]} \
-                if vertical_filter and vertical_filter in VERTICALS \
-                else VERTICALS
-
-    async with httpx.AsyncClient(timeout=5.0) as client:
-        for vertical, url in verticals.items():
-            try:
-                res = await client.get(f"{url}/tools")
-                raw_tools = res.json()
-                for tool in raw_tools:
-                    report = review_tool(tool, vertical, version)
-                    feedback_store.record(vertical, tool, report)
+    try:
+        async with streamable_http_client(url) as (read, write):
+            async with ClientSession(read, write) as session:
+                await session.initialize()
+                result = await session.list_tools()
+                for tool in result.tools:
+                    raw = {
+                        "name": tool.name,
+                        "description": tool.description or "",
+                        "input_schema": tool.inputSchema or {}
+                    }
+                    report = review_tool(raw, vertical)
+                    feedback_store.record(vertical, raw, report)
                     stats.record_tool(vertical, report["status"])
                     if report["status"] != "blocked":
                         tools.append({
-                            "name": f"{vertical}__{tool['name']}",
-                            "description": tool.get("description", ""),
-                            "inputSchema": tool.get("input_schema", {})
+                            "name": f"{vertical}__{tool.name}",
+                            "description": tool.description or "",
+                            "inputSchema": tool.inputSchema or {}
                         })
-            except Exception as e:
-                stats.record_error(vertical)
-
-    return {"jsonrpc": "2.0", "id": req_id, "result": {"tools": tools}}
-
-async def _tools_call(req_id, params, headers={}):
-    tool_name = params.get("name", "")
-    arguments = params.get("arguments", {})
-
-    if "__" not in tool_name:
-        return _error(req_id, -32602, "Tool name must be namespaced: vertical__tool_name")
-
-    vertical, original_name = tool_name.split("__", 1)
-    url = VERTICALS.get(vertical)
-
-    if not url:
-        return _error(req_id, -32602, f"Unknown vertical: {vertical}")
-
-    correlation_id = str(uuid.uuid4())[:8]
-    tracer.start(correlation_id, tool_name, vertical)
-    call_start = datetime.utcnow()
-
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            tracer.step(correlation_id, "vertical_call")
-            res = await client.post(
-                f"{url}/tools/{original_name}/call",
-                json={"arguments": arguments}
-            )
-            result = res.json()
-            tracer.end(correlation_id, "ok")
-            stats.record_call(vertical, tool_name)
-
-            latency_ms = round((datetime.utcnow() - call_start).total_seconds() * 1000)
-            session_id = (
-                headers.get("mcp-session-id") or
-                headers.get("x-session-id") or
-                "anonymous"
-            )
-            session_store.record(session_id, tool_name, vertical, "ok", latency_ms)
-
-            return {"jsonrpc": "2.0", "id": req_id, "result": result}
-
     except Exception as e:
-        tracer.end(correlation_id, "error", str(e))
         stats.record_error(vertical)
-        return _error(req_id, -32603, f"Vertical call failed: {str(e)}")
+        print(f"[proxy] Could not connect to {vertical}: {e}")
+    return tools
 
-def _error(req_id, code, message):
-    return {"jsonrpc": "2.0", "id": req_id, "error": {"code": code, "message": message}}
+async def _load_all_tools(vertical_filter: str = None) -> list:
+    """Load tools from all (or one) vertical(s)."""
+    all_tools = []
+    targets = (
+        {vertical_filter: VERTICALS[vertical_filter]}
+        if vertical_filter and vertical_filter in VERTICALS
+        else VERTICALS
+    )
+    for vertical, url in targets.items():
+        tools = await _fetch_tools_from_vertical(vertical, url)
+        all_tools.extend(tools)
+    return all_tools
 
-@app.get("/health")
+# ─── MCP Proxy Server ──────────────────────────────────────────────────────────
+
+proxy = FastMCP(
+    "bettercompare-proxy",
+    instructions=(
+        "BetterCompare aggregates CHECK24 comparison verticals: "
+        "internet, mobile, travel, and insurance. "
+        "Tools are namespaced as vertical__tool_name."
+    )
+)
+
+# We register tools dynamically at startup — see lifespan below.
+# For static type-safety we use a tool registry pattern:
+
+_tool_registry: dict[str, dict] = {}  # name → {vertical, original_name}
+
+def _make_tool_handler(vertical: str, original_name: str):
+    """Factory that creates a tool call handler for one vertical tool."""
+    async def handler(**kwargs) -> str:
+        qualified = f"{vertical}__{original_name}"
+        correlation_id = str(uuid.uuid4())[:8]
+        tracer.start(correlation_id, qualified, vertical)
+        call_start = datetime.utcnow()
+
+        try:
+            url = VERTICALS[vertical].replace("/mcp", "")
+            async with streamable_http_client(VERTICALS[vertical]) as (read, write):
+                async with ClientSession(read, write) as session:
+                    await session.initialize()
+                    tracer.step(correlation_id, "vertical_call")
+                    result = await session.call_tool(original_name, kwargs)
+                    tracer.end(correlation_id, "ok")
+                    stats.record_call(vertical, qualified)
+                    latency_ms = round(
+                        (datetime.utcnow() - call_start).total_seconds() * 1000
+                    )
+                    session_store.record("proxy", qualified, vertical, "ok", latency_ms)
+                    # Return first text content block
+                    for block in result.content:
+                        if hasattr(block, "text"):
+                            return block.text
+                    return json.dumps({"status": "ok"})
+        except Exception as e:
+            tracer.end(correlation_id, "error", str(e))
+            stats.record_error(vertical)
+            return json.dumps({"error": str(e)})
+
+    handler.__name__ = f"{vertical}__{original_name}"
+    return handler
+
+async def _register_dynamic_tools():
+    """Load tools from verticals and register them on the MCP server."""
+    all_tools = await _load_all_tools()
+    for tool in all_tools:
+        namespaced = tool["name"]           # e.g. "internet__compare_internet_offers"
+        vertical, original = namespaced.split("__", 1)
+        handler = _make_tool_handler(vertical, original)
+        # Register via FastMCP's tool decorator programmatically
+        proxy.add_tool(
+            handler,
+            name=namespaced,
+            description=tool.get("description", ""),
+        )
+        _tool_registry[namespaced] = {"vertical": vertical, "original_name": original}
+    print(f"[proxy] Registered {len(all_tools)} tools")
+
+# ─── FastAPI side-car for dashboard + admin endpoints ─────────────────────────
+
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+
+admin = FastAPI(title="BetterCompare Admin")
+
+dashboard_dir = os.path.join(os.path.dirname(__file__), "dashboard")
+if os.path.isdir(dashboard_dir):
+    admin.mount("/static", StaticFiles(directory=dashboard_dir), name="static")
+
+@admin.get("/dashboard", response_class=HTMLResponse)
+async def dashboard():
+    path = os.path.join(dashboard_dir, "index.html")
+    with open(path) as f:
+        return f.read()
+
+@admin.get("/health")
 async def health():
     results = {}
     async with httpx.AsyncClient(timeout=3.0) as client:
         for name, url in VERTICALS.items():
             try:
-                await client.get(url)
+                await client.get(url.replace("/mcp", ""))
                 results[name] = "ok"
             except:
                 results[name] = "unreachable"
     return results
 
-@app.get("/catalog")
+@admin.get("/catalog")
 async def catalog():
-    await _load_tools()
     return feedback_store.get_catalog()
 
-@app.get("/feedback")
+@admin.get("/feedback")
 async def feedback(vertical: str = None):
     return feedback_store.get(vertical)
 
-@app.get("/traces")
+@admin.get("/traces")
 async def traces():
     return tracer.get_all()
 
-@app.get("/stats")
+@admin.post("/traces/clear")
+async def clear_traces():
+    tracer.clear()
+    return {"status": "cleared"}
+
+@admin.get("/stats")
 async def get_stats():
     return stats.get_all()
 
-@app.get("/sessions")
+@admin.get("/sessions")
 async def sessions(session_id: str = None):
     if session_id:
         s = session_store.get(session_id)
-        if not s:
-            return {"error": "Session not found"}
-        return s
+        return s or {"error": "Session not found"}
     return session_store.get_all()
 
-@app.post("/sessions/clear")
+@admin.post("/sessions/clear")
 async def clear_sessions():
     session_store.clear()
-    return {"status": "cleared", "message": "All sessions reset"}
+    return {"status": "cleared"}
 
-@app.post("/feedback/clear")
+@admin.post("/feedback/clear")
 async def clear_feedback():
     feedback_store.clear()
-    return {"status": "cleared", "message": "Feedback store reset"}
+    return {"status": "cleared"}
 
-@app.post("/reload")
+@admin.post("/reload")
 async def reload():
-    await _load_tools()
-    return {"status": "reloaded", "message": "Tool catalog refreshed"}
+    _tool_registry.clear()
+    # Re-register tools (proxy needs restart for full effect in prod)
+    await _register_dynamic_tools()
+    return {"status": "reloaded", "tools": len(_tool_registry)}
 
-@app.post("/validate")
-async def validate_tool(request: Request):
-    body = await request.json()
-    tool = body.get("tool", {})
-    vertical = body.get("vertical", "unknown")
-
-    if not tool:
-        return JSONResponse({"error": "No tool provided"}, status_code=400)
-
-    report = review_tool(tool, vertical)
-
-    return {
-        "tool_name": tool.get("name", "unknown"),
-        "vertical": vertical,
-        "status": report["status"],
-        "score": report["score"],
-        "violations": report["violations"],
-        "summary": {
-            "errors": len([v for v in report["violations"] if v["severity"] == "ERROR"]),
-            "warnings": len([v for v in report["violations"] if v["severity"] == "WARNING"]),
-            "passed": len(report["violations"]) == 0
-        },
-        "checked_at": report["checked_at"]
-    }
-
-@app.get("/versions")
+@admin.get("/versions")
 async def versions():
+    from conformance.engine import VERSION_POLICY
     manifest = get_version_manifest()
     manifest["conformance_policy"] = {
         "current": CURRENT_VERSION,
@@ -268,187 +223,61 @@ async def versions():
     }
     return manifest
 
-@app.get("/versions/check")
+@admin.get("/versions/check")
 async def check_version(vertical: str):
-    from catalog.versions import VERTICAL_VERSIONS
     v = VERTICAL_VERSIONS.get(vertical)
     if not v:
         return {"error": f"Unknown vertical: {vertical}"}
+    notes = {
+        "stable": "Safe to use in production",
+        "beta": "May change — not recommended for production",
+        "deprecated": "Will be removed in next major version"
+    }
+    return {**v, "vertical": vertical, "notes": notes.get(v["status"])}
+
+@admin.post("/validate")
+async def validate_tool(request: Request):
+    body = await request.json()
+    tool = body.get("tool", {})
+    vertical = body.get("vertical", "unknown")
+    if not tool:
+        return JSONResponse({"error": "No tool provided"}, status_code=400)
+    report = review_tool(tool, vertical)
     return {
+        "tool_name": tool.get("name", "unknown"),
         "vertical": vertical,
-        "version": v["version"],
-        "status": v["status"],
-        "notes": {
-            "stable": "Safe to use in production",
-            "beta": "May change — not recommended for production",
-            "deprecated": "Will be removed in next major version"
-        }.get(v["status"])
+        **report,
+        "summary": {
+            "errors": len([v for v in report["violations"] if v["severity"] == "ERROR"]),
+            "warnings": len([v for v in report["violations"] if v["severity"] == "WARNING"]),
+            "passed": len(report["violations"]) == 0
+        }
     }
 
-@app.get("/openapi-schema")
-async def openapi_schema():
-    tools = []
-    async with httpx.AsyncClient(timeout=5.0) as client:
-        for vertical, url in VERTICALS.items():
-            try:
-                res = await client.get(f"{url}/tools")
-                raw_tools = res.json()
-                for tool in raw_tools:
-                    report = review_tool(tool, vertical)
-                    if report["status"] != "blocked":
-                        tools.append((vertical, tool))
-            except:
-                pass
+# ─── Combined ASGI app ────────────────────────────────────────────────────────
 
-    paths = {}
-    for vertical, tool in tools:
-        name = f"{vertical}__{tool['name']}"
-        schema = tool.get("input_schema", {})
-        paths[f"/tools/{name}/call"] = {
-            "post": {
-                "operationId": name,
-                "summary": tool.get("description", f"Call {name}"),
-                "requestBody": {
-                    "required": True,
-                    "content": {
-                        "application/json": {
-                            "schema": schema
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Tool result",
-                        "content": {
-                            "application/json": {
-                                "schema": {"type": "object"}
-                            }
-                        }
-                    }
-                }
-            }
-        }
+# The MCP streamable HTTP app lives at /mcp
+# Everything else (dashboard, admin) lives at the root
 
-    return {
-        "openapi": "3.1.0",
-        "info": {
-            "title": "BetterCompare MCP Proxy",
-            "version": "1.0.0",
-            "description": "Compare internet, mobile, travel and insurance offers"
-        },
-        "servers": [{"url": "https://bettercompare.dev"}],
-        "paths": paths
-    }
+@asynccontextmanager
+async def lifespan(app):
+    await _register_dynamic_tools()
+    yield
 
-@app.post("/tools/{vertical}__{tool_name}/call")
-async def call_tool(vertical: str, tool_name: str, request: Request):
-    body = await request.json()
+from starlette.applications import Starlette
+from starlette.routing import Mount, Route
 
-    url = VERTICALS.get(vertical)
-    if not url:
-        return JSONResponse({"error": f"Unknown vertical: {vertical}"}, status_code=404)
+mcp_app = proxy.streamable_http_app()
 
-    qualified_name = f"{vertical}__{tool_name}"
-    correlation_id = str(uuid.uuid4())[:8]
-    tracer.start(correlation_id, qualified_name, vertical)
-    call_start = datetime.utcnow()
+# Wrap both apps under one Starlette router
+combined = Starlette(
+    routes=[
+        Mount("/mcp", app=mcp_app),
+        Mount("/", app=admin),
+    ],
+    lifespan=lifespan,
+)
 
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            tracer.step(correlation_id, "vertical_call")
-            res = await client.post(
-                f"{url}/tools/{tool_name}/call",
-                json={"arguments": body}
-            )
-            result = res.json()
-            tracer.end(correlation_id, "ok")
-            stats.record_call(vertical, qualified_name)
-            latency_ms = round((datetime.utcnow() - call_start).total_seconds() * 1000)
-            session_store.record("chatgpt", qualified_name, vertical, "ok", latency_ms)
-            return result
-    except Exception as e:
-        tracer.end(correlation_id, "error", str(e))
-        stats.record_error(vertical)
-        return JSONResponse({"error": str(e)}, status_code=500)
-
-@app.post("/chat")
-async def chat(request: Request):
-    body = await request.json()
-    user_message = body.get("message", "")
-
-    if not user_message:
-        return JSONResponse({"error": "No message provided"}, status_code=400)
-
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        return JSONResponse({"error": "OpenAI API key not configured"}, status_code=500)
-
-    openai_client = OpenAI(api_key=api_key)
-
-    mcp_tools_response = await _tools_list(1)
-    mcp_tools = mcp_tools_response.get("result", {}).get("tools", [])
-
-    openai_tools = [
-        {
-            "type": "function",
-            "function": {
-                "name": tool["name"],
-                "description": tool.get("description", ""),
-                "parameters": tool.get("inputSchema", {})
-            }
-        }
-        for tool in mcp_tools
-    ]
-
-    messages = [{"role": "user", "content": user_message}]
-    response = openai_client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=messages,
-        tools=openai_tools,
-        tool_choice="auto"
-    )
-
-    message = response.choices[0].message
-
-    if message.tool_calls:
-        tool_call = message.tool_calls[0]
-        tool_name = tool_call.function.name
-        arguments = json.loads(tool_call.function.arguments)
-
-        mcp_result = await _tools_call(
-            req_id=1,
-            params={"name": tool_name, "arguments": arguments},
-            headers={"x-session-id": "ai-chat"}
-        )
-
-        tool_result = mcp_result.get("result", {})
-
-        messages.append(message)
-        messages.append({
-            "role": "tool",
-            "tool_call_id": tool_call.id,
-            "content": json.dumps(tool_result)
-        })
-
-        final_response = openai_client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=messages
-        )
-
-        return {
-            "response": final_response.choices[0].message.content,
-            "tool_used": tool_name,
-            "tool_result": tool_result
-        }
-
-    return {"response": message.content, "tool_used": None}
-@app.post("/traces/clear")
-async def clear_traces():
-    tracer.clear()
-    return {"status": "cleared", "message": "All traces reset"}
-@app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard():
-    path = os.path.join(os.path.dirname(__file__), "dashboard/index.html")
-    with open(path) as f:
-        return f.read()
+if __name__ == "__main__":
+    uvicorn.run(combined, host="0.0.0.0", port=8787)
   
