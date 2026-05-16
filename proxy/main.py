@@ -540,6 +540,11 @@ combined = Starlette(
     lifespan=lifespan,
 )
 
+combined.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=["*"]
+)
+
 
 if __name__ == "__main__":
     uvicorn.run(combined, host="0.0.0.0", port=8787)
