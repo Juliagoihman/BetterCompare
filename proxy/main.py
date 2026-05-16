@@ -454,25 +454,13 @@ async def lifespan(app):
     await _register_dynamic_tools()
     yield
 
-@asynccontextmanager
-async def lifespan(app):
-    await _register_dynamic_tools()
-    yield
 
-from starlette.applications import Starlette
-from starlette.routing import Mount
-from starlette.middleware.trustedhost import TrustedHostMiddleware
-
-# MCP app läuft auf root, admin auf /api
 mcp_app = proxy.streamable_http_app()
-
-# Wrap admin unter /api prefix
-from starlette.middleware import Middleware
 
 combined = Starlette(
     routes=[
-        Mount("/api", app=admin),
-        Mount("/", app=mcp_app),
+        Mount("/mcp", app=mcp_app),
+        Mount("/", app=admin),
     ],
     lifespan=lifespan,
 )
