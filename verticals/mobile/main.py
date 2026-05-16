@@ -1,110 +1,47 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
-from typing import Any, Dict
+from mcp.server.fastmcp import FastMCP
 
-app = FastAPI(title="Mobile MCP")
+mcp = FastMCP("mobile-vertical")
 
-@app.get("/")
-def home():
-    return {"vertical": "mobile", "status": "running"}
-
-@app.get("/tools")
-def tools():
-    return [
-        {
-            "name": "compare_mobile_plans",
-            "description": "Compare mobile phone plans by data volume and price.",
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "data_gb": {"type": "integer", "description": "Minimum data in GB"},
-                    "max_price": {"type": "number", "description": "Maximum monthly price in EUR"}
-                },
-                "required": ["data_gb"]
-            }
-        },
-        {
-            "name": "get_best_mobile_deal",
-            "description": "Get the best mobile plan for a given data requirement.",
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "data_gb": {"type": "integer"},
-                    "include_phone": {"type": "boolean"}
-                },
-                "required": ["data_gb"]
-            }
-        },
-        {
-            "name": "check_network_coverage",
-            "description": "Check mobile network coverage for a specific location.",
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "location": {"type": "string"},
-                    "provider": {"type": "string"}
-                },
-                "required": ["location"]
-            }
-        },
-        {
-            "name": "compare_phone_hardware",
-            "description": "Compare smartphone hardware deals with included plans.",
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "brand": {"type": "string"},
-                    "max_price": {"type": "number"}
-                },
-                "required": ["brand"]
-            }
-        }
-    ]
-
-class CallRequest(BaseModel):
-    arguments: Dict[str, Any] = {}
-
-@app.post("/tools/compare_mobile_plans/call")
-def compare_mobile_plans(req: CallRequest):
-    data_gb = req.arguments.get("data_gb", 5)
+@mcp.tool()
+def compare_mobile_plans(data_gb: int, calls_flat: bool = True) -> dict:
+    """Compare mobile plans based on data volume and call options."""
     return {
-        "results": [
-            {"provider": "Telekom", "data_gb": 15, "price": 19.99, "network": "5G"},
-            {"provider": "O2", "data_gb": 10, "price": 14.99, "network": "4G"},
-            {"provider": "Vodafone", "data_gb": 20, "price": 24.99, "network": "5G"}
+        "plans": [
+            {"provider": "Telekom", "data_gb": data_gb, "price": 29.99, "network": "5G"},
+            {"provider": "Vodafone", "data_gb": data_gb, "price": 24.99, "network": "5G"},
+            {"provider": "O2", "data_gb": data_gb, "price": 19.99, "network": "4G"},
+        ]
+    }
+
+@mcp.tool()
+def get_best_mobile_deal(data_gb: int, max_price: float = 999.0) -> dict:
+    """Get the best mobile deal for given data needs and budget."""
+    return {
+        "best_plan": {"provider": "O2", "data_gb": data_gb, "price": 19.99},
+        "max_price_filter": max_price
+    }
+
+@mcp.tool()
+def check_network_coverage(address: str, provider: str) -> dict:
+    """Check network coverage for a provider at a specific address."""
+    return {
+        "address": address,
+        "provider": provider,
+        "coverage": {"4G": True, "5G": True, "signal_strength": "excellent"}
+    }
+
+@mcp.tool()
+def compare_phone_hardware(budget: float, brand: str = None) -> dict:
+    """Compare available phones within a budget."""
+    return {
+        "phones": [
+            {"model": "iPhone 15", "price": 799.0, "brand": "Apple"},
+            {"model": "Samsung Galaxy S24", "price": 699.0, "brand": "Samsung"},
         ],
-        "min_data_gb": data_gb
+        "budget_filter": budget
     }
 
-@app.post("/tools/get_best_mobile_deal/call")
-def get_best_mobile_deal(req: CallRequest):
-    data_gb = req.arguments.get("data_gb", 5)
-    include_phone = req.arguments.get("include_phone", False)
-    return {
-        "best_deal": {"provider": "O2", "data_gb": 10, "price": 14.99, "network": "4G"},
-        "include_phone": include_phone,
-        "min_data_gb": data_gb
-    }
-
-@app.post("/tools/check_network_coverage/call")
-def check_network_coverage(req: CallRequest):
-    location = req.arguments.get("location", "unknown")
-    return {
-        "location": location,
-        "coverage": {
-            "Telekom": {"4G": True, "5G": True},
-            "Vodafone": {"4G": True, "5G": False},
-            "O2": {"4G": True, "5G": False}
-        }
-    }
-
-@app.post("/tools/compare_phone_hardware/call")
-def compare_phone_hardware(req: CallRequest):
-    brand = req.arguments.get("brand", "Apple")
-    return {
-        "results": [
-            {"model": f"{brand} Pro", "price": 999, "plan_included": "10GB Telekom"},
-            {"model": f"{brand} Standard", "price": 799, "plan_included": "5GB O2"}
-        ],
-        "brand": brand
-    }
+if __name__ == "__main__":
+    import uvicorn
+    app = mcp.streamable_http_app()
+    uvicorn.run(app, host="0.0.0.0", port=8802)
