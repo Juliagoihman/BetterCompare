@@ -16,7 +16,7 @@ It was my first time diving deep into the MCP protocol, and I quickly realized h
 
 The heart ❤️ of the project is the Conformance Engine: it validates every tool against structured rules and gives vertical teams concrete, actionable feedback. It is not just a rejection, but a clear "here's the problem, and here's how to fix it." That part was especially satisfying to build.
 
-(docs/screenshots/Check24.png)
+![Check24 Screenshot](docs/screenshots/Check24.png)
 ---
 
 ## 🚀 Live Demo
@@ -467,7 +467,7 @@ Es war das erste Mal, dass ich tief in das MCP-Protokoll eingetaucht bin, und ic
 
 Das Herzstück ❤️ des Projekts ist die Conformance Engine: Sie prüft jedes Tool gegen strukturierte Regeln und gibt Vertical-Teams konkretes, umsetzbares Feedback. Kein stilles Blockieren — sondern ein klares "Hier ist das Problem, und so kannst du es lösen." Diesen Teil zu bauen war besonders befriedigend.
 
-(docs/screenshots/Check24.png)
+![Check24 Screenshot](docs/screenshots/Check24.png)
 ---
 
 ## 🚀 Live Demo
