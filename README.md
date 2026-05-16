@@ -15,7 +15,7 @@ The challenge grabbed me from the start: how do you bring multiple independent A
 It was my first time diving deep into the MCP protocol, and I quickly realized how much care it takes to make tools truly ChatGPT-ready: clear descriptions, consistent schemas, meaningful error messages. What looks like a simple routing problem at first glance turns into a question of architecture and trust as the proxy needs to work as a reliable gatekeeper, not just a pass-through.
 
 The heart ❤️ of the project is the Conformance Engine: it validates every tool against structured rules and gives vertical teams concrete, actionable feedback. It is not just a rejection, but a clear "here's the problem, and here's how to fix it." That part was especially satisfying to build.
-
+docs/screenshots/check24.png
 ---
 
 ## 🚀 Live Demo
@@ -465,7 +465,7 @@ Die Challenge hat mich von Anfang an gepackt: Wie bringt man mehrere unabhängig
 Es war das erste Mal, dass ich tief in das MCP-Protokoll eingetaucht bin, und ich habe schnell gemerkt, wie viel Sorgfalt es braucht, Tools wirklich ChatGPT-tauglich zu machen: klare Beschreibungen, konsistente Schemas, aussagekräftige Fehlermeldungen. Was auf den ersten Blick wie ein einfaches Routing-Problem wirkt, wird schnell zur Frage von Architektur und Vertrauen — der Proxy muss als zuverlässiger Gatekeeper funktionieren, nicht nur als Durchleitung.
 
 Das Herzstück ❤️ des Projekts ist die Conformance Engine: Sie prüft jedes Tool gegen strukturierte Regeln und gibt Vertical-Teams konkretes, umsetzbares Feedback. Kein stilles Blockieren — sondern ein klares "Hier ist das Problem, und so kannst du es lösen." Diesen Teil zu bauen war besonders befriedigend.
-
+docs/screenshots/check24.png
 ---
 
 ## 🚀 Live Demo
