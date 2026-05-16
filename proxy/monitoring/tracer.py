@@ -31,7 +31,6 @@ class Tracer:
             return
         trace = self._active.pop(correlation_id)
         total_ms = round(time.time() * 1000 - trace["_start_ms"])
-
         finished = {
             "correlation_id": trace["correlation_id"],
             "tool_name": trace["tool_name"],
@@ -43,13 +42,14 @@ class Tracer:
         }
         if error:
             finished["error"] = error
-
         self._traces.appendleft(finished)
 
     def get_all(self):
         return list(self._traces)
-def clear(self):
-    self._traces.clear()
-    self._active.clear()
+
+    def clear(self):
+        self._traces.clear()
+        self._active.clear()
+
 # Global instance
 tracer = Tracer()
