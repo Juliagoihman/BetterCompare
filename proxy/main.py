@@ -43,88 +43,69 @@ async def _fetch_tools_from_vertical(vertical: str, url: str) -> list:
             async with ClientSession(read, write) as session:
                 await session.initialize()
                 result = await session.list_tools()
-
                 for tool in result.tools:
                     raw = {
                         "name": tool.name,
                         "description": tool.description or "",
                         "input_schema": tool.inputSchema or {},
                     }
-
                     report = review_tool(raw, vertical)
                     feedback_store.record(vertical, raw, report)
                     stats.record_tool(vertical, report["status"])
-
                     if report["status"] != "blocked":
-                        tools.append(
-                            {
-                                "name": f"{vertical}__{tool.name}",
-                                "description": tool.description or "",
-                                "inputSchema": tool.inputSchema or {},
-                            }
-                        )
+                        tools.append({
+                            "name": f"{vertical}__{tool.name}",
+                            "description": tool.description or "",
+                            "inputSchema": tool.inputSchema or {},
+                        })
     except Exception as e:
         stats.record_error(vertical)
         print(f"[proxy] Could not connect to {vertical}: {e}")
-
     return tools
 
 
 async def _load_all_tools(vertical_filter: str = None) -> list:
     all_tools = []
-
     targets = (
         {vertical_filter: VERTICALS[vertical_filter]}
         if vertical_filter and vertical_filter in VERTICALS
         else VERTICALS
     )
-
     for vertical, url in targets.items():
         tools = await _fetch_tools_from_vertical(vertical, url)
         all_tools.extend(tools)
-
     return all_tools
 
 
 async def _tools_call_internal(tool_name: str, arguments: dict):
     if "__" not in tool_name:
         return {"error": "Invalid tool name"}
-
     vertical, original_name = tool_name.split("__", 1)
     url = VERTICALS.get(vertical)
-
     if not url:
         return {"error": f"Unknown vertical: {vertical}"}
-
     correlation_id = str(uuid.uuid4())[:8]
     tracer.start(correlation_id, tool_name, vertical)
     call_start = datetime.utcnow()
-
     try:
         async with streamable_http_client(url) as (read, write, _):
             async with ClientSession(read, write) as session:
                 await session.initialize()
                 tracer.step(correlation_id, "vertical_call")
-
                 result = await session.call_tool(original_name, arguments)
-
                 tracer.end(correlation_id, "ok")
                 stats.record_call(vertical, tool_name)
-
                 latency_ms = round(
                     (datetime.utcnow() - call_start).total_seconds() * 1000
                 )
                 session_store.record("ai-chat", tool_name, vertical, "ok", latency_ms)
-
                 for block in result.content:
                     if hasattr(block, "text"):
                         try:
                             return json.loads(block.text)
                         except Exception:
                             return {"result": block.text}
-
                 return {"status": "ok"}
-
     except Exception as e:
         tracer.end(correlation_id, "error", str(e))
         stats.record_error(vertical)
@@ -149,29 +130,22 @@ def _make_tool_handler(vertical: str, original_name: str):
         correlation_id = str(uuid.uuid4())[:8]
         tracer.start(correlation_id, qualified, vertical)
         call_start = datetime.utcnow()
-
         try:
             async with streamable_http_client(VERTICALS[vertical]) as (read, write, _):
                 async with ClientSession(read, write) as session:
                     await session.initialize()
                     tracer.step(correlation_id, "vertical_call")
-
                     result = await session.call_tool(original_name, kwargs)
-
                     tracer.end(correlation_id, "ok")
                     stats.record_call(vertical, qualified)
-
                     latency_ms = round(
                         (datetime.utcnow() - call_start).total_seconds() * 1000
                     )
                     session_store.record("proxy", qualified, vertical, "ok", latency_ms)
-
                     for block in result.content:
                         if hasattr(block, "text"):
                             return block.text
-
                     return json.dumps({"status": "ok"})
-
         except Exception as e:
             tracer.end(correlation_id, "error", str(e))
             stats.record_error(vertical)
@@ -183,35 +157,32 @@ def _make_tool_handler(vertical: str, original_name: str):
 
 async def _register_dynamic_tools():
     all_tools = await _load_all_tools()
-
     for tool in all_tools:
         namespaced = tool["name"]
         vertical, original = namespaced.split("__", 1)
-
         if namespaced in _tool_registry:
             continue
-
         handler = _make_tool_handler(vertical, original)
-
         proxy.add_tool(
             handler,
             name=namespaced,
             description=tool.get("description", ""),
         )
-
         _tool_registry[namespaced] = {
             "vertical": vertical,
             "original_name": original,
         }
-
     print(f"[proxy] Registered {len(_tool_registry)} tools")
 
 
 admin = FastAPI(title="BetterCompare Admin")
 
+
 @admin.get("/")
 async def root():
     return {"status": "ok", "service": "bettercompare"}
+
+
 dashboard_dir = os.path.join(os.path.dirname(__file__), "dashboard")
 
 if os.path.isdir(dashboard_dir):
@@ -228,7 +199,6 @@ async def dashboard():
 @admin.get("/health")
 async def health():
     results = {}
-
     async with httpx.AsyncClient(timeout=3.0) as client:
         for name, url in VERTICALS.items():
             try:
@@ -236,7 +206,6 @@ async def health():
                 results[name] = "ok"
             except Exception:
                 results[name] = "unreachable"
-
     return results
 
 
@@ -307,16 +276,13 @@ async def versions():
 @admin.get("/versions/check")
 async def check_version(vertical: str):
     v = VERTICAL_VERSIONS.get(vertical)
-
     if not v:
         return {"error": f"Unknown vertical: {vertical}"}
-
     notes = {
         "stable": "Safe to use in production",
         "beta": "May change — not recommended for production",
         "deprecated": "Will be removed in next major version",
     }
-
     return {**v, "vertical": vertical, "notes": notes.get(v["status"])}
 
 
@@ -325,23 +291,16 @@ async def validate_tool(request: Request):
     body = await request.json()
     tool = body.get("tool", {})
     vertical = body.get("vertical", "unknown")
-
     if not tool:
         return JSONResponse({"error": "No tool provided"}, status_code=400)
-
     report = review_tool(tool, vertical)
-
     return {
         "tool_name": tool.get("name", "unknown"),
         "vertical": vertical,
         **report,
         "summary": {
-            "errors": len(
-                [v for v in report["violations"] if v["severity"] == "ERROR"]
-            ),
-            "warnings": len(
-                [v for v in report["violations"] if v["severity"] == "WARNING"]
-            ),
+            "errors": len([v for v in report["violations"] if v["severity"] == "ERROR"]),
+            "warnings": len([v for v in report["violations"] if v["severity"] == "WARNING"]),
             "passed": len(report["violations"]) == 0,
         },
     }
@@ -351,11 +310,9 @@ async def validate_tool(request: Request):
 async def openapi_schema():
     tools = await _load_all_tools()
     paths = {}
-
     for tool in tools:
         name = tool["name"]
         schema = tool.get("inputSchema", {})
-
         paths[f"/tools/{name}/call"] = {
             "post": {
                 "operationId": name,
@@ -364,9 +321,7 @@ async def openapi_schema():
                     "required": True,
                     "content": {
                         "application/json": {
-                            "schema": schema
-                            if schema
-                            else {"type": "object", "properties": {}}
+                            "schema": schema if schema else {"type": "object", "properties": {}}
                         }
                     },
                 },
@@ -390,7 +345,6 @@ async def openapi_schema():
                 },
             }
         }
-
     return {
         "openapi": "3.1.0",
         "info": {
@@ -406,46 +360,33 @@ async def openapi_schema():
 @admin.post("/tools/{tool_path:path}/call")
 async def call_tool_rest(tool_path: str, request: Request):
     body = await request.json()
-
     if "__" not in tool_path:
         return JSONResponse({"error": "Invalid tool path"}, status_code=400)
-
     vertical, original_name = tool_path.split("__", 1)
     url = VERTICALS.get(vertical)
-
     if not url:
-        return JSONResponse(
-            {"error": f"Unknown vertical: {vertical}"}, status_code=404
-        )
-
+        return JSONResponse({"error": f"Unknown vertical: {vertical}"}, status_code=404)
     correlation_id = str(uuid.uuid4())[:8]
     tracer.start(correlation_id, tool_path, vertical)
     call_start = datetime.utcnow()
-
     try:
         async with streamable_http_client(url) as (read, write, _):
             async with ClientSession(read, write) as session:
                 await session.initialize()
-
                 result = await session.call_tool(original_name, body)
-
                 tracer.end(correlation_id, "ok")
                 stats.record_call(vertical, tool_path)
-
                 latency_ms = round(
                     (datetime.utcnow() - call_start).total_seconds() * 1000
                 )
                 session_store.record("chatgpt", tool_path, vertical, "ok", latency_ms)
-
                 for block in result.content:
                     if hasattr(block, "text"):
                         try:
                             return JSONResponse(json.loads(block.text))
                         except Exception:
                             return JSONResponse({"result": block.text})
-
                 return JSONResponse({"status": "ok"})
-
     except Exception as e:
         tracer.end(correlation_id, "error", str(e))
         stats.record_error(vertical)
@@ -457,20 +398,13 @@ async def chat(request: Request):
     body = await request.json()
     user_message = body.get("message", "")
     history = body.get("history", [])
-
     if not user_message:
         return JSONResponse({"error": "No message provided"}, status_code=400)
-
     api_key = os.environ.get("OPENAI_API_KEY")
-
     if not api_key:
-        return JSONResponse(
-            {"error": "OpenAI API key not configured"}, status_code=500
-        )
-
+        return JSONResponse({"error": "OpenAI API key not configured"}, status_code=500)
     openai_client = OpenAI(api_key=api_key)
     all_tools = await _load_all_tools()
-
     openai_tools = [
         {
             "type": "function",
@@ -482,54 +416,44 @@ async def chat(request: Request):
         }
         for tool in all_tools
     ]
-
     messages = []
-
     for h in history:
         messages.append({"role": h["role"], "content": h["content"]})
-
     messages.append({"role": "user", "content": user_message})
-
     response = openai_client.chat.completions.create(
         model="gpt-4o-mini",
         messages=messages,
         tools=openai_tools,
         tool_choice="auto",
     )
-
     message = response.choices[0].message
-
     if message.tool_calls:
         tool_call = message.tool_calls[0]
         tool_name = tool_call.function.name
         arguments = json.loads(tool_call.function.arguments)
-
         mcp_result = await _tools_call_internal(tool_name, arguments)
-
         messages.append(message)
-        messages.append(
-            {
-                "role": "tool",
-                "tool_call_id": tool_call.id,
-                "content": json.dumps(mcp_result),
-            }
-        )
-
+        messages.append({
+            "role": "tool",
+            "tool_call_id": tool_call.id,
+            "content": json.dumps(mcp_result),
+        })
         final_response = openai_client.chat.completions.create(
             model="gpt-4o-mini",
             messages=messages,
         )
-
         return {
             "response": final_response.choices[0].message.content,
             "tool_used": tool_name,
         }
-
     return {"response": message.content, "tool_used": None}
+
 
 @asynccontextmanager
 async def lifespan(app):
+    await _register_dynamic_tools()
     yield
+
 
 mcp_app = proxy.streamable_http_app()
 
@@ -545,10 +469,6 @@ combined.add_middleware(
     TrustedHostMiddleware,
     allowed_hosts=["*"],
 )
-
-if __name__ == "__main__":
-    uvicorn.run(combined, host="0.0.0.0", port=8787)
-
 
 if __name__ == "__main__":
     uvicorn.run(combined, host="0.0.0.0", port=8787)
