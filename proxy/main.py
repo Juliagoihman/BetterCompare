@@ -12,6 +12,7 @@ import uuid
 import os
 import json
 from datetime import datetime
+from openai import OpenAI
 
 from conformance.engine import review_tool, CURRENT_VERSION
 from catalog.versions import get_version_manifest, VERTICAL_VERSIONS
@@ -65,6 +66,40 @@ async def _load_all_tools(vertical_filter: str = None) -> list:
         tools = await _fetch_tools_from_vertical(vertical, url)
         all_tools.extend(tools)
     return all_tools
+
+async def _tools_call_internal(tool_name: str, arguments: dict):
+    if "__" not in tool_name:
+        return {"error": "Invalid tool name"}
+    vertical, original_name = tool_name.split("__", 1)
+    url = VERTICALS.get(vertical)
+    if not url:
+        return {"error": f"Unknown vertical: {vertical}"}
+    correlation_id = str(uuid.uuid4())[:8]
+    tracer.start(correlation_id, tool_name, vertical)
+    call_start = datetime.utcnow()
+    try:
+        async with streamable_http_client(url) as (read, write, _):
+            async with ClientSession(read, write) as session:
+                await session.initialize()
+                tracer.step(correlation_id, "vertical_call")
+                result = await session.call_tool(original_name, arguments)
+                tracer.end(correlation_id, "ok")
+                stats.record_call(vertical, tool_name)
+                latency_ms = round(
+                    (datetime.utcnow() - call_start).total_seconds() * 1000
+                )
+                session_store.record("ai-chat", tool_name, vertical, "ok", latency_ms)
+                for block in result.content:
+                    if hasattr(block, "text"):
+                        try:
+                            return json.loads(block.text)
+                        except:
+                            return {"result": block.text}
+                return {"status": "ok"}
+    except Exception as e:
+        tracer.end(correlation_id, "error", str(e))
+        stats.record_error(vertical)
+        return {"error": str(e)}
 
 proxy = FastMCP(
     "bettercompare-proxy",
@@ -248,10 +283,7 @@ async def openapi_schema():
                     "required": True,
                     "content": {
                         "application/json": {
-                            "schema": schema if schema else {
-                                "type": "object",
-                                "properties": {}
-                            }
+                            "schema": schema if schema else {"type": "object", "properties": {}}
                         }
                     }
                 },
@@ -275,7 +307,6 @@ async def openapi_schema():
                 }
             }
         }
-
     return {
         "openapi": "3.1.0",
         "info": {
@@ -318,6 +349,66 @@ async def call_tool_rest(tool_path: str, request: Request):
         tracer.end(correlation_id, "error", str(e))
         stats.record_error(vertical)
         return JSONResponse({"error": str(e)}, status_code=500)
+
+@admin.post("/chat")
+async def chat(request: Request):
+    body = await request.json()
+    user_message = body.get("message", "")
+    if not user_message:
+        return JSONResponse({"error": "No message provided"}, status_code=400)
+
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        return JSONResponse({"error": "OpenAI API key not configured"}, status_code=500)
+
+    openai_client = OpenAI(api_key=api_key)
+    all_tools = await _load_all_tools()
+    openai_tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": tool["name"],
+                "description": tool.get("description", ""),
+                "parameters": tool.get("inputSchema", {})
+            }
+        }
+        for tool in all_tools
+    ]
+
+    messages = [{"role": "user", "content": user_message}]
+    response = openai_client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=messages,
+        tools=openai_tools,
+        tool_choice="auto"
+    )
+
+    message = response.choices[0].message
+
+    if message.tool_calls:
+        tool_call = message.tool_calls[0]
+        tool_name = tool_call.function.name
+        arguments = json.loads(tool_call.function.arguments)
+
+        mcp_result = await _tools_call_internal(tool_name, arguments)
+
+        messages.append(message)
+        messages.append({
+            "role": "tool",
+            "tool_call_id": tool_call.id,
+            "content": json.dumps(mcp_result)
+        })
+
+        final_response = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages
+        )
+        return {
+            "response": final_response.choices[0].message.content,
+            "tool_used": tool_name
+        }
+
+    return {"response": message.content, "tool_used": None}
 
 @asynccontextmanager
 async def lifespan(app):
