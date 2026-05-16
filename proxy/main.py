@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 from starlette.applications import Starlette
 from starlette.routing import Mount
-
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from contextlib import asynccontextmanager
 import uvicorn
 import httpx
