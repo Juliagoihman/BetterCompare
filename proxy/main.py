@@ -208,6 +208,9 @@ async def _register_dynamic_tools():
 
 admin = FastAPI(title="BetterCompare Admin")
 
+@admin.get("/")
+async def root():
+    return {"status": "ok", "service": "bettercompare"}
 dashboard_dir = os.path.join(os.path.dirname(__file__), "dashboard")
 
 if os.path.isdir(dashboard_dir):
