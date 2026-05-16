@@ -1,131 +1,57 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
-from typing import Any, Dict
+from mcp.server.fastmcp import FastMCP
 
-app = FastAPI(title="Travel MCP")
+mcp = FastMCP("travel-vertical")
 
-@app.get("/")
-def home():
-    return {"vertical": "travel", "status": "running"}
-
-@app.get("/tools")
-def tools():
-    return [
-        {
-            "name": "search_travel_offers",
-            "description": "Search travel and vacation offers for a destination and budget.",
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "destination": {"type": "string"},
-                    "budget": {"type": "integer"}
-                },
-                "required": ["destination"]
-            }
-        },
-        {
-            "name": "search_flights",
-            "description": "Search for available flights between two cities on a given date.",
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "origin": {"type": "string"},
-                    "destination": {"type": "string"},
-                    "date": {"type": "string"}
-                },
-                "required": ["origin", "destination", "date"]
-            }
-        },
-        {
-            "name": "search_hotels",
-            "description": "Search for hotels at a destination with check-in and check-out dates.",
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "destination": {"type": "string"},
-                    "checkin": {"type": "string"},
-                    "checkout": {"type": "string"},
-                    "guests": {"type": "integer"}
-                },
-                "required": ["destination", "checkin", "checkout"]
-            }
-        },
-        {
-            "name": "get_travel_insurance",
-            "description": "Get travel insurance options for a trip.",
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "destination": {"type": "string"},
-                    "duration_days": {"type": "integer"},
-                    "travelers": {"type": "integer"}
-                },
-                "required": ["destination", "duration_days"]
-            }
-        }
-    ]
-
-class CallRequest(BaseModel):
-    arguments: Dict[str, Any] = {}
-
-@app.post("/tools/search_travel_offers/call")
-def search_travel_offers(req: CallRequest):
-    destination = req.arguments.get("destination", "unknown")
-    budget = req.arguments.get("budget", 1000)
+@mcp.tool()
+def search_travel_offers(destination: str, departure_date: str, return_date: str, travelers: int = 1) -> dict:
+    """Search for package travel offers to a destination."""
     return {
-        "results": [
-            {"name": f"7 days {destination}", "price": 799, "hotel": "4 stars", "flights": "included"},
-            {"name": f"5 days {destination}", "price": 599, "hotel": "3 stars", "flights": "included"},
-            {"name": f"10 days {destination}", "price": 1299, "hotel": "5 stars", "flights": "included"}
+        "offers": [
+            {"hotel": "Ibis Barcelona", "flight": "Lufthansa", "total": 899.0, "stars": 3},
+            {"hotel": "Hilton Barcelona", "flight": "Ryanair", "total": 1199.0, "stars": 5},
         ],
         "destination": destination,
-        "budget": budget
+        "dates": {"from": departure_date, "to": return_date},
+        "travelers": travelers
     }
 
-@app.post("/tools/search_flights/call")
-def search_flights(req: CallRequest):
-    origin = req.arguments.get("origin", "unknown")
-    destination = req.arguments.get("destination", "unknown")
-    date = req.arguments.get("date", "unknown")
+@mcp.tool()
+def search_flights(origin: str, destination: str, date: str, passengers: int = 1) -> dict:
+    """Search for available flights between two cities."""
     return {
         "flights": [
-            {"airline": "Lufthansa", "departure": "08:00", "arrival": "10:30", "price": 189},
-            {"airline": "Ryanair", "departure": "14:00", "arrival": "16:15", "price": 89},
-            {"airline": "EasyJet", "departure": "19:00", "arrival": "21:20", "price": 129}
+            {"airline": "Lufthansa", "departure": "08:00", "arrival": "10:30", "price": 189.0},
+            {"airline": "Ryanair", "departure": "14:00", "arrival": "16:30", "price": 89.0},
         ],
-        "origin": origin,
-        "destination": destination,
+        "route": f"{origin} → {destination}",
         "date": date
     }
 
-@app.post("/tools/search_hotels/call")
-def search_hotels(req: CallRequest):
-    destination = req.arguments.get("destination", "unknown")
-    checkin = req.arguments.get("checkin")
-    checkout = req.arguments.get("checkout")
+@mcp.tool()
+def search_hotels(destination: str, checkin: str, checkout: str, guests: int = 1) -> dict:
+    """Search for available hotels at a destination."""
     return {
         "hotels": [
-            {"name": f"Hotel Central {destination}", "stars": 4, "price_per_night": 120},
-            {"name": f"Budget Inn {destination}", "stars": 3, "price_per_night": 75},
-            {"name": f"Grand {destination}", "stars": 5, "price_per_night": 250}
+            {"name": "Hotel Mitte", "stars": 3, "price_per_night": 89.0},
+            {"name": "Grand Hotel", "stars": 5, "price_per_night": 299.0},
         ],
-        "destination": destination,
-        "checkin": checkin,
-        "checkout": checkout
+        "destination": destination
     }
 
-@app.post("/tools/get_travel_insurance/call")
-def get_travel_insurance(req: CallRequest):
-    destination = req.arguments.get("destination", "unknown")
-    duration_days = req.arguments.get("duration_days", 7)
-    travelers = req.arguments.get("travelers", 1)
+@mcp.tool()
+def get_travel_insurance(destination: str, travelers: int, duration_days: int) -> dict:
+    """Get travel insurance options for a trip."""
     return {
         "options": [
-            {"provider": "Allianz", "coverage": "basic", "price": 29.99 * travelers},
-            {"provider": "AXA", "coverage": "premium", "price": 49.99 * travelers},
-            {"provider": "HanseMerkur", "coverage": "full", "price": 69.99 * travelers}
+            {"name": "Basic", "price": 12.99, "covers": ["cancellation", "medical"]},
+            {"name": "Premium", "price": 24.99, "covers": ["cancellation", "medical", "luggage"]},
         ],
         "destination": destination,
-        "duration_days": duration_days,
-        "travelers": travelers
+        "travelers": travelers,
+        "duration_days": duration_days
     }
+
+if __name__ == "__main__":
+    import uvicorn
+    app = mcp.streamable_http_app()
+    uvicorn.run(app, host="0.0.0.0", port=8803)
