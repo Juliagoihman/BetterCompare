@@ -6,7 +6,6 @@ from fastapi import Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
-from starlette.routing import Mount
 import uvicorn
 import httpx
 import uuid
@@ -33,10 +32,9 @@ VERTICALS = {
 # ─── Tool loading via real MCP client ─────────────────────────────────────────
 
 async def _fetch_tools_from_vertical(vertical: str, url: str) -> list:
-    """Connect to a vertical MCP server and fetch its tools."""
     tools = []
     try:
-        async with streamable_http_client(url) as (read, write):
+        async with streamable_http_client(url) as (read, write, _):
             async with ClientSession(read, write) as session:
                 await session.initialize()
                 result = await session.list_tools()
@@ -61,7 +59,6 @@ async def _fetch_tools_from_vertical(vertical: str, url: str) -> list:
     return tools
 
 async def _load_all_tools(vertical_filter: str = None) -> list:
-    """Load tools from all (or one) vertical(s)."""
     all_tools = []
     targets = (
         {vertical_filter: VERTICALS[vertical_filter]}
@@ -84,22 +81,16 @@ proxy = FastMCP(
     )
 )
 
-# We register tools dynamically at startup — see lifespan below.
-# For static type-safety we use a tool registry pattern:
-
-_tool_registry: dict[str, dict] = {}  # name → {vertical, original_name}
+_tool_registry: dict[str, dict] = {}
 
 def _make_tool_handler(vertical: str, original_name: str):
-    """Factory that creates a tool call handler for one vertical tool."""
     async def handler(**kwargs) -> str:
         qualified = f"{vertical}__{original_name}"
         correlation_id = str(uuid.uuid4())[:8]
         tracer.start(correlation_id, qualified, vertical)
         call_start = datetime.utcnow()
-
         try:
-            url = VERTICALS[vertical].replace("/mcp", "")
-            async with streamable_http_client(VERTICALS[vertical]) as (read, write):
+            async with streamable_http_client(VERTICALS[vertical]) as (read, write, _):
                 async with ClientSession(read, write) as session:
                     await session.initialize()
                     tracer.step(correlation_id, "vertical_call")
@@ -110,7 +101,6 @@ def _make_tool_handler(vertical: str, original_name: str):
                         (datetime.utcnow() - call_start).total_seconds() * 1000
                     )
                     session_store.record("proxy", qualified, vertical, "ok", latency_ms)
-                    # Return first text content block
                     for block in result.content:
                         if hasattr(block, "text"):
                             return block.text
@@ -124,13 +114,11 @@ def _make_tool_handler(vertical: str, original_name: str):
     return handler
 
 async def _register_dynamic_tools():
-    """Load tools from verticals and register them on the MCP server."""
     all_tools = await _load_all_tools()
     for tool in all_tools:
-        namespaced = tool["name"]           # e.g. "internet__compare_internet_offers"
+        namespaced = tool["name"]
         vertical, original = namespaced.split("__", 1)
         handler = _make_tool_handler(vertical, original)
-        # Register via FastMCP's tool decorator programmatically
         proxy.add_tool(
             handler,
             name=namespaced,
@@ -139,7 +127,7 @@ async def _register_dynamic_tools():
         _tool_registry[namespaced] = {"vertical": vertical, "original_name": original}
     print(f"[proxy] Registered {len(all_tools)} tools")
 
-# ─── FastAPI side-car for dashboard + admin endpoints ─────────────────────────
+# ─── FastAPI side-car ──────────────────────────────────────────────────────────
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
@@ -209,7 +197,6 @@ async def clear_feedback():
 @admin.post("/reload")
 async def reload():
     _tool_registry.clear()
-    # Re-register tools (proxy needs restart for full effect in prod)
     await _register_dynamic_tools()
     return {"status": "reloaded", "tools": len(_tool_registry)}
 
@@ -256,20 +243,16 @@ async def validate_tool(request: Request):
 
 # ─── Combined ASGI app ────────────────────────────────────────────────────────
 
-# The MCP streamable HTTP app lives at /mcp
-# Everything else (dashboard, admin) lives at the root
-
 @asynccontextmanager
 async def lifespan(app):
     await _register_dynamic_tools()
     yield
 
 from starlette.applications import Starlette
-from starlette.routing import Mount, Route
+from starlette.routing import Mount
 
 mcp_app = proxy.streamable_http_app()
 
-# Wrap both apps under one Starlette router
 combined = Starlette(
     routes=[
         Mount("/mcp", app=mcp_app),
@@ -280,4 +263,3 @@ combined = Starlette(
 
 if __name__ == "__main__":
     uvicorn.run(combined, host="0.0.0.0", port=8787)
-  
