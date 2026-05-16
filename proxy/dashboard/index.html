@@ -23,6 +23,15 @@
   .btn-clear { background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); }
   .btn-clear:hover { background: rgba(220,38,38,0.3); }
 
+  /* Tabs */
+  .tabs { background: white; border-bottom: 2px solid #e2e8f0; padding: 0 2rem; display: flex; gap: 0; }
+  .tab { padding: 14px 24px; font-size: 13px; font-weight: 700; color: #64748b; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px; transition: all .2s; display: flex; align-items: center; gap: 6px; }
+  .tab:hover { color: #003087; }
+  .tab.active { color: #003087; border-bottom-color: #003087; }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
   .main { padding: 1.5rem 2rem; max-width: 1400px; margin: 0 auto; }
 
   .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
@@ -124,6 +133,62 @@
   .chat-hint { display: inline-block; background: white; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 3px 10px; border-radius: 10px; margin: 2px; cursor: pointer; font-size: 11px; font-weight: 500; transition: all .15s; }
   .chat-hint:hover { background: #dbeafe; border-color: #93c5fd; }
 
+  /* ── Sandbox ── */
+  .sandbox-layout { display: grid; grid-template-columns: 300px 1fr; gap: 16px; align-items: start; }
+  @media(max-width:768px){ .sandbox-layout { grid-template-columns: 1fr; } }
+
+  .sb-tool-list { display: flex; flex-direction: column; gap: 3px; max-height: 520px; overflow-y: auto; }
+  .sb-tool-item { padding: 9px 12px; border-radius: 8px; cursor: pointer; border: 1.5px solid transparent; transition: all .15s; }
+  .sb-tool-item:hover { background: #f0f4f8; border-color: #e2e8f0; }
+  .sb-tool-item.active { background: #eff6ff; border-color: #bfdbfe; }
+  .sb-tool-name { font-family: monospace; font-size: 11px; font-weight: 700; color: #1a2332; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+  .sb-vpill { font-size: 9px; padding: 2px 6px; border-radius: 10px; font-weight: 700; }
+  .vp-internet { background: #dcfce7; color: #16a34a; }
+  .vp-mobile   { background: #dbeafe; color: #1d4ed8; }
+  .vp-travel   { background: #fef3c7; color: #d97706; }
+  .vp-insurance{ background: #ede9fe; color: #7c3aed; }
+  .sb-tool-desc { font-size: 10px; color: #94a3b8; margin-top: 2px; }
+
+  .sb-form-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #64748b; margin-bottom: 6px; display: block; }
+  .sb-param-field { margin-bottom: 10px; }
+  .sb-param-field label { display: block; font-family: monospace; font-size: 11px; color: #64748b; margin-bottom: 4px; }
+  .sb-param-field label span { color: #dc2626; }
+  .sb-param-field input { width: 100%; padding: 8px 10px; border: 1.5px solid #e2e8f0; border-radius: 7px; font-size: 12px; font-family: monospace; outline: none; transition: border .15s; }
+  .sb-param-field input:focus { border-color: #0050c8; }
+  .sb-run-btn { width: 100%; padding: 10px; background: linear-gradient(135deg, #003087, #0050c8); color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all .2s; margin-top: 4px; }
+  .sb-run-btn:hover { opacity: .9; transform: translateY(-1px); }
+  .sb-run-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+  .sb-status { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 12px; margin-bottom: 10px; }
+  .sb-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .sb-dot-ok  { background: #16a34a; }
+  .sb-dot-err { background: #dc2626; }
+  .sb-dot-loading { background: #d97706; animation: pulse 0.8s infinite; }
+  .sb-time { margin-left: auto; font-size: 11px; color: #94a3b8; }
+
+  .sb-widget { border: 1.5px solid #bfdbfe; border-radius: 10px; overflow: hidden; margin-bottom: 10px; }
+  .sb-widget-header { padding: 8px 14px; background: linear-gradient(135deg, #eff6ff, #f0f4f8); border-bottom: 1px solid #e2e8f0; font-size: 11px; font-weight: 700; color: #003087; text-transform: uppercase; letter-spacing: .05em; }
+  .sb-widget-body { padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+
+  .sb-offer-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; animation: sbSlide .2s ease forwards; opacity: 0; }
+  @keyframes sbSlide { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+  .sb-offer-card:nth-child(1){animation-delay:.0s}
+  .sb-offer-card:nth-child(2){animation-delay:.05s}
+  .sb-offer-card:nth-child(3){animation-delay:.1s}
+  .sb-offer-provider { font-weight: 700; font-size: 13px; color: #1a2332; }
+  .sb-offer-detail  { font-size: 11px; color: #94a3b8; font-family: monospace; margin-top: 2px; }
+  .sb-offer-price   { font-family: monospace; font-size: 17px; font-weight: 800; color: #003087; }
+  .sb-offer-price span { font-size: 10px; color: #94a3b8; font-weight: 400; }
+
+  .sb-json { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+  .sb-json-header { padding: 8px 14px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #64748b; }
+  .sb-copy-btn { background: none; border: 1px solid #e2e8f0; color: #64748b; padding: 2px 8px; border-radius: 4px; font-size: 10px; cursor: pointer; }
+  .sb-copy-btn:hover { border-color: #003087; color: #003087; }
+  .sb-json pre { padding: 12px 14px; font-family: monospace; font-size: 11px; line-height: 1.6; max-height: 320px; overflow-y: auto; color: #1a2332; }
+
+  .sb-empty { padding: 48px 20px; text-align: center; color: #94a3b8; }
+  .sb-empty-icon { font-size: 36px; margin-bottom: 10px; opacity: .5; }
+
   .footer { text-align: center; padding: 1.5rem; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; margin-top: 1rem; }
   .footer strong { color: #003087; }
 </style>
@@ -150,6 +215,14 @@
   </div>
 </div>
 
+<!-- Tabs -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('dashboard', this)">📊 Dashboard</div>
+  <div class="tab" onclick="switchTab('sandbox', this)">🧪 Widget Sandbox</div>
+</div>
+
+<!-- Dashboard Tab -->
+<div id="tab-dashboard" class="tab-content active">
 <div class="main">
 
   <div class="metrics">
@@ -183,13 +256,7 @@
       </div>
     </div>
     <div class="chat-input-row">
-      <input
-        class="chat-input"
-        id="chat-input"
-        type="text"
-        placeholder="z.B. Compare internet offers for Munich..."
-        onkeydown="if(event.key==='Enter')sendChat()"
-      >
+      <input class="chat-input" id="chat-input" type="text" placeholder="z.B. Compare internet offers for Munich..." onkeydown="if(event.key==='Enter')sendChat()">
       <button class="chat-send" onclick="sendChat()">Send →</button>
     </div>
     <div class="chat-hints">
@@ -263,12 +330,71 @@
   </div>
 
 </div>
+</div>
+
+<!-- Sandbox Tab -->
+<div id="tab-sandbox" class="tab-content">
+<div class="main">
+  <div style="margin-bottom:16px">
+    <div style="font-size:13px;color:#64748b;background:white;border:1.5px solid #bfdbfe;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px">
+      <span style="font-size:18px">🧪</span>
+      <div>
+        <strong style="color:#003087">Widget Sandbox</strong> — Test any tool in isolation before it reaches customers.
+        Select a tool, fill in parameters, and see the live result with a widget preview.
+        <span style="color:#94a3b8;font-size:11px;margin-left:6px">This is the same proxy path ChatGPT uses.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="sandbox-layout">
+    <!-- Tool selector -->
+    <div class="panel" style="padding: 12px;">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin-bottom:8px;padding:0 4px">Select Tool</div>
+      <div class="sb-tool-list" id="sb-tool-list">
+        <div style="padding:16px;text-align:center;color:#94a3b8;font-size:12px">Loading tools...</div>
+      </div>
+    </div>
+
+    <!-- Right panel -->
+    <div style="display:flex;flex-direction:column;gap:14px;">
+
+      <!-- Params -->
+      <div class="panel" id="sb-form-panel">
+        <h2>⚙️ Parameters</h2>
+        <div style="color:#94a3b8;font-size:13px">← Select a tool to configure parameters</div>
+      </div>
+
+      <!-- Result -->
+      <div class="panel">
+        <h2>📦 Result</h2>
+        <div id="sb-result">
+          <div class="sb-empty">
+            <div class="sb-empty-icon">⚡</div>
+            <div>Run a tool to see the result here</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</div>
 
 <div class="footer">
   <strong>BetterCompare</strong> · MCP Proxy v1.0.0 · Eine Suche. Alle Vergleiche. · Powered by CHECK24
 </div>
 
 <script>
+// ── Tab switching ──────────────────────────────────────────────
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'sandbox') loadSandboxTools();
+}
+
+// ── Shared helpers ─────────────────────────────────────────────
 let catalogData = [];
 
 async function fetchJSON(url) {
@@ -276,88 +402,49 @@ async function fetchJSON(url) {
   catch(e) { return null; }
 }
 
+// ── Dashboard ──────────────────────────────────────────────────
 async function loadAll() {
   const [feedback, traces, stats, sessions, versions] = await Promise.all([
-    fetchJSON('/feedback'),
-    fetchJSON('/traces'),
-    fetchJSON('/stats'),
-    fetchJSON('/sessions'),
-    fetchJSON('/versions')
+    fetchJSON('/feedback'), fetchJSON('/traces'), fetchJSON('/stats'),
+    fetchJSON('/sessions'), fetchJSON('/versions')
   ]);
   if (feedback) renderFeedback(feedback);
-  if (traces) renderTraces(traces);
-  if (stats) renderStats(stats);
+  if (traces)   renderTraces(traces);
+  if (stats)    renderStats(stats);
   if (sessions) renderSessions(sessions);
   if (versions) renderVersions(versions);
 }
 
-async function clearAllData() {
-  if (!confirm('Reset all feedback data?')) return;
-  await fetch('/feedback/clear', {method: 'POST'});
-  loadAll();
-}
-
-async function clearSessions() {
-  if (!confirm('Reset all session data?')) return;
-  await fetch('/sessions/clear', {method: 'POST'});
-  loadAll();
-}
-
-async function clearTraces() {
-  if (!confirm('Reset all trace data?')) return;
-  await fetch('/traces/clear', {method: 'POST'});
-  loadAll();
-}
+async function clearAllData()  { if (!confirm('Reset feedback?')) return; await fetch('/feedback/clear',{method:'POST'}); loadAll(); }
+async function clearSessions() { if (!confirm('Reset sessions?')) return; await fetch('/sessions/clear',{method:'POST'}); loadAll(); }
+async function clearTraces()   { if (!confirm('Reset traces?')) return; await fetch('/traces/clear',{method:'POST'}); loadAll(); }
 
 async function validateTool() {
   const input = document.getElementById('validate-input').value.trim();
   const vertical = document.getElementById('validate-vertical').value.trim() || 'unknown';
   const result = document.getElementById('validate-result');
-
-  if (!input) {
-    result.innerHTML = '<div style="color:#dc2626;font-size:12px">Please paste a tool JSON first</div>';
-    return;
-  }
-
+  if (!input) { result.innerHTML = '<div style="color:#dc2626;font-size:12px">Please paste a tool JSON first</div>'; return; }
   let tool;
-  try {
-    tool = JSON.parse(input);
-  } catch(e) {
-    result.innerHTML = '<div style="color:#dc2626;font-size:12px">❌ Invalid JSON: ' + e.message + '</div>';
-    return;
-  }
-
+  try { tool = JSON.parse(input); } catch(e) { result.innerHTML = '<div style="color:#dc2626;font-size:12px">❌ Invalid JSON: '+e.message+'</div>'; return; }
   result.innerHTML = '<div style="color:#94a3b8;font-size:12px">Validating...</div>';
-
   try {
-    const res = await fetch('/validate', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({tool, vertical})
-    });
+    const res = await fetch('/validate', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({tool,vertical}) });
     const data = await res.json();
-    const statusColor = data.status === 'accepted' ? '#16a34a' : data.status === 'adapted' ? '#d97706' : '#dc2626';
-    const statusBg = data.status === 'accepted' ? '#dcfce7' : data.status === 'adapted' ? '#fef3c7' : '#fee2e2';
-
-    result.innerHTML = `
-      <div style="border:1px solid #e2e8f0;border-radius:8px;padding:10px;margin-top:4px">
-        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-          <span style="font-weight:700;font-size:12px">${data.tool_name}</span>
-          <span style="background:${statusBg};color:${statusColor};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">${data.status} · ${data.score}/100</span>
-        </div>
-        ${data.violations.length ? data.violations.map(v => `
-          <div style="font-size:11px;margin-bottom:6px;padding:6px;background:#f8fafc;border-radius:6px">
-            <span style="background:#f1f5f9;padding:1px 5px;border-radius:3px;font-family:monospace;font-size:10px">${v.rule_id}</span>
-            <span style="color:${v.severity==='ERROR'?'#dc2626':'#d97706'};margin-left:4px;font-weight:600">${v.severity}</span>
-            <div style="color:#1a2332;margin-top:3px">${v.reason}</div>
-            <div style="color:#0050c8;margin-top:2px">→ ${v.fix}</div>
-          </div>`).join('') :
-          '<div style="color:#16a34a;font-weight:700;font-size:12px">✓ All checks passed!</div>'
-        }
-      </div>`;
-  } catch(e) {
-    result.innerHTML = '<div style="color:#dc2626;font-size:12px">❌ Error: ' + e.message + '</div>';
-  }
+    const sc = data.status==='accepted'?'#16a34a':data.status==='adapted'?'#d97706':'#dc2626';
+    const sb = data.status==='accepted'?'#dcfce7':data.status==='adapted'?'#fef3c7':'#fee2e2';
+    result.innerHTML = `<div style="border:1px solid #e2e8f0;border-radius:8px;padding:10px;margin-top:4px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+        <span style="font-weight:700;font-size:12px">${data.tool_name}</span>
+        <span style="background:${sb};color:${sc};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700">${data.status} · ${data.score}/100</span>
+      </div>
+      ${data.violations.length ? data.violations.map(v=>`<div style="font-size:11px;margin-bottom:6px;padding:6px;background:#f8fafc;border-radius:6px">
+        <span style="background:#f1f5f9;padding:1px 5px;border-radius:3px;font-family:monospace;font-size:10px">${v.rule_id}</span>
+        <span style="color:${v.severity==='ERROR'?'#dc2626':'#d97706'};margin-left:4px;font-weight:600">${v.severity}</span>
+        <div style="color:#1a2332;margin-top:3px">${v.reason}</div>
+        <div style="color:#0050c8;margin-top:2px">→ ${v.fix}</div>
+      </div>`).join('') : '<div style="color:#16a34a;font-weight:700;font-size:12px">✓ All checks passed!</div>'}
+    </div>`;
+  } catch(e) { result.innerHTML = '<div style="color:#dc2626;font-size:12px">❌ '+e.message+'</div>'; }
 }
 
 function renderVersions(v) {
@@ -365,54 +452,36 @@ function renderVersions(v) {
   if (!v) return;
   const policy = v.conformance_policy || {};
   info.innerHTML = `
-    <div class="v-row">
-      <div style="flex:1;font-size:12px;color:#64748b">Proxy Version</div>
-      <div style="font-weight:700;font-size:12px">${v.proxy_version}</div>
-    </div>
-    <div class="v-row">
-      <div style="flex:1;font-size:12px;color:#64748b">Catalog Version</div>
-      <div style="font-weight:700;font-size:12px">${v.catalog_version}</div>
-    </div>
-    <div class="v-row">
-      <div style="flex:1;font-size:12px;color:#64748b">Active Policy</div>
-      <div style="font-weight:700;font-size:12px">${policy.current || 'v1'}</div>
-    </div>
-    ${Object.entries(v.verticals || {}).map(([name, ver]) => `
+    <div class="v-row"><div style="flex:1;font-size:12px;color:#64748b">Proxy Version</div><div style="font-weight:700;font-size:12px">${v.proxy_version}</div></div>
+    <div class="v-row"><div style="flex:1;font-size:12px;color:#64748b">Catalog Version</div><div style="font-weight:700;font-size:12px">${v.catalog_version}</div></div>
+    <div class="v-row"><div style="flex:1;font-size:12px;color:#64748b">Active Policy</div><div style="font-weight:700;font-size:12px">${policy.current||'v1'}</div></div>
+    ${Object.entries(v.verticals||{}).map(([name,ver])=>`
     <div class="v-row">
       <div style="flex:1;font-size:12px;color:#64748b">${name}</div>
       <div style="display:flex;gap:6px;align-items:center">
         <span style="font-size:11px;color:#94a3b8">v${ver.version}</span>
         <span style="background:${ver.status==='stable'?'#dcfce7':'#fef3c7'};color:${ver.status==='stable'?'#16a34a':'#d97706'};padding:1px 6px;border-radius:8px;font-size:10px;font-weight:700">${ver.status}</span>
       </div>
-    </div>`).join('')}
-  `;
+    </div>`).join('')}`;
 }
 
 function renderFeedback(f) {
   document.getElementById('m-tools').textContent = f.total || 0;
-  document.getElementById('m-score').textContent = (f.overall_score || 0) + '%';
-
+  document.getElementById('m-score').textContent = (f.overall_score||0)+'%';
   const verticals = f.by_vertical || {};
-  document.getElementById('vertical-list').innerHTML = Object.entries(verticals).map(([name, v]) => {
-    const dotClass = v.score >= 80 ? 'dot-green' : v.score >= 60 ? 'dot-amber' : 'dot-red';
+  document.getElementById('vertical-list').innerHTML = Object.entries(verticals).map(([name,v])=>{
+    const dc = v.score>=80?'dot-green':v.score>=60?'dot-amber':'dot-red';
     return `<div class="v-row">
-      <div class="dot ${dotClass}"></div>
-      <div style="flex:1">
-        <div class="v-name">${name}</div>
-        <div class="v-meta">${v.total} tools</div>
-      </div>
+      <div class="dot ${dc}"></div>
+      <div style="flex:1"><div class="v-name">${name}</div><div class="v-meta">${v.total} tools</div></div>
       <div class="v-stats">${v.accepted} ok · ${v.adapted} adapted · ${v.blocked} blocked</div>
       <span class="score-pill ${v.score>=80?'sp-high':v.score>=60?'sp-mid':'sp-low'}">${v.score}</span>
     </div>`;
   }).join('') || '<div style="color:#94a3b8;font-size:12px">No data yet</div>';
 
-  const allViolations = [];
-  Object.entries(verticals).forEach(([vname, v]) => {
-    (v.tools||[]).forEach(t => {
-      (t.violations||[]).forEach(vi => allViolations.push({...vi, tool: t.qualified_name}));
-    });
-  });
-  document.getElementById('violations-list').innerHTML = allViolations.slice(0,5).map(v => `
+  const allV = [];
+  Object.entries(verticals).forEach(([vname,v])=>{ (v.tools||[]).forEach(t=>{ (t.violations||[]).forEach(vi=>allV.push({...vi,tool:t.qualified_name})); }); });
+  document.getElementById('violations-list').innerHTML = allV.slice(0,5).map(v=>`
     <div class="rule-row">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
         <span class="rule-id">${v.rule_id}</span>
@@ -423,27 +492,16 @@ function renderFeedback(f) {
     </div>`).join('') || '<div style="color:#16a34a;font-size:12px;font-weight:700">✓ No violations detected</div>';
 
   catalogData = [];
-  Object.entries(verticals).forEach(([vname, v]) => {
-    (v.tools||[]).forEach(t => catalogData.push({...t, vname}));
-  });
+  Object.entries(verticals).forEach(([vname,v])=>{ (v.tools||[]).forEach(t=>catalogData.push({...t,vname})); });
   renderCatalog('all');
-
   const filters = document.getElementById('cat-filters');
-  const existing = Array.from(filters.querySelectorAll('.filter-btn')).map(b => b.textContent.trim());
-  Object.keys(verticals).forEach(vname => {
-    if (!existing.includes(vname)) {
-      const btn = document.createElement('button');
-      btn.className = 'filter-btn';
-      btn.textContent = vname;
-      btn.onclick = () => filterCat(vname, btn);
-      filters.appendChild(btn);
-    }
-  });
+  const existing = Array.from(filters.querySelectorAll('.filter-btn')).map(b=>b.textContent.trim());
+  Object.keys(verticals).forEach(vname=>{ if(!existing.includes(vname)){ const btn=document.createElement('button'); btn.className='filter-btn'; btn.textContent=vname; btn.onclick=()=>filterCat(vname,btn); filters.appendChild(btn); } });
 }
 
 function renderCatalog(filter) {
-  const items = filter === 'all' ? catalogData : catalogData.filter(t => t.vname === filter);
-  document.getElementById('catalog-list').innerHTML = items.map(t => `
+  const items = filter==='all'?catalogData:catalogData.filter(t=>t.vname===filter);
+  document.getElementById('catalog-list').innerHTML = items.map(t=>`
     <div class="cat-row">
       <div class="mono">${t.qualified_name}</div>
       <div style="font-size:10px;color:#94a3b8">v1.0</div>
@@ -452,19 +510,16 @@ function renderCatalog(filter) {
     </div>`).join('') || '<div style="color:#94a3b8;font-size:12px">No tools</div>';
 }
 
-function filterCat(f, btn) {
-  document.querySelectorAll('#cat-filters .filter-btn').forEach(b => b.classList.remove('active'));
+function filterCat(f,btn) {
+  document.querySelectorAll('#cat-filters .filter-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   renderCatalog(f);
 }
 
 function renderTraces(traces) {
   const list = document.getElementById('trace-list');
-  if (!traces.length) {
-    list.innerHTML = '<div style="color:#94a3b8;font-size:12px">No traces yet — use the AI chat or call /mcp to generate traces</div>';
-    return;
-  }
-  list.innerHTML = traces.slice(0,6).map((t,i) => `
+  if (!traces.length) { list.innerHTML='<div style="color:#94a3b8;font-size:12px">No traces yet — use the AI chat or call /mcp</div>'; return; }
+  list.innerHTML = traces.slice(0,6).map((t,i)=>`
     <div class="trace-item" onclick="toggleExpand(${i})">
       <div class="trace-top">
         <span class="trace-id">${t.correlation_id}</span>
@@ -472,117 +527,225 @@ function renderTraces(traces) {
         <span class="badge ${t.status==='ok'?'badge-ok':'badge-err'}">${t.status}</span>
         <span class="trace-ms">${t.total_ms} ms</span>
       </div>
-      <div class="trace-bar">
-        <div class="tb-parse" style="width:5%"></div>
-        <div class="${t.status==='ok'?'tb-ok':'tb-err'}" style="width:90%"></div>
-        <div class="tb-parse" style="width:5%"></div>
-      </div>
-      <div class="expand" id="exp_${i}">
-        ${(t.steps||[]).map(s=>`<div style="display:flex;justify-content:space-between;padding:2px 0"><span>${s.name}</span><span>${s.at_ms}ms</span></div>`).join('')}
-        ${t.error?`<div style="color:#dc2626;margin-top:4px">${t.error}</div>`:''}
-      </div>
+      <div class="trace-bar"><div class="tb-parse" style="width:5%"></div><div class="${t.status==='ok'?'tb-ok':'tb-err'}" style="width:90%"></div><div class="tb-parse" style="width:5%"></div></div>
+      <div class="expand" id="exp_${i}">${(t.steps||[]).map(s=>`<div style="display:flex;justify-content:space-between;padding:2px 0"><span>${s.name}</span><span>${s.at_ms}ms</span></div>`).join('')}${t.error?`<div style="color:#dc2626;margin-top:4px">${t.error}</div>`:''}</div>
     </div>`).join('');
 }
 
-function toggleExpand(i) {
-  const el = document.getElementById('exp_'+i);
-  el.style.display = el.style.display === 'block' ? 'none' : 'block';
-}
+function toggleExpand(i) { const el=document.getElementById('exp_'+i); el.style.display=el.style.display==='block'?'none':'block'; }
 
 function renderSessions(sessions) {
   const list = document.getElementById('session-list');
-  if (!sessions.length) {
-    list.innerHTML = '<div style="color:#94a3b8;font-size:12px">No sessions yet — start chatting!</div>';
-    return;
-  }
-  list.innerHTML = sessions.slice(0,5).map(s => `
+  if (!sessions.length) { list.innerHTML='<div style="color:#94a3b8;font-size:12px">No sessions yet</div>'; return; }
+  list.innerHTML = sessions.slice(0,5).map(s=>`
     <div class="session-row">
-      <div class="sess-header">
-        <span class="sess-id">${s.session_id}</span>
-        ${s.avg_latency_ms ? `<span class="sess-latency">⚡ ${s.avg_latency_ms}ms avg</span>` : ''}
-      </div>
-      <div class="sess-tools">
-        ${s.tool_calls.map(c=>`<span class="sess-tool">${c.tool}</span>`).join('<span class="sess-arrow">→</span>')}
-      </div>
+      <div class="sess-header"><span class="sess-id">${s.session_id}</span>${s.avg_latency_ms?`<span class="sess-latency">⚡ ${s.avg_latency_ms}ms avg</span>`:''}</div>
+      <div class="sess-tools">${s.tool_calls.map(c=>`<span class="sess-tool">${c.tool}</span>`).join('<span class="sess-arrow">→</span>')}</div>
     </div>`).join('');
 }
 
 function renderStats(s) {
   document.getElementById('m-calls').textContent = (s.total_calls||0).toLocaleString();
-  document.getElementById('m-success').textContent = `✅ ${s.total_success || 0} successful`;
-  const errRate = s.total_calls > 0 ? ((s.total_errors/s.total_calls)*100).toFixed(1) : '0.0';
-  document.getElementById('m-errors').textContent = errRate + '%';
-  document.getElementById('m-success-rate').textContent = `${s.success_rate_pct || 100}% success rate`;
-  const tools = s.top_tools || [];
-  document.getElementById('top-tools').innerHTML = tools.length ? tools.map(([name, count]) => `
-    <div class="v-row">
-      <span class="mono" style="flex:1">${name}</span>
-      <span style="font-size:11px;color:#64748b;background:#f1f5f9;padding:1px 8px;border-radius:10px">${count} calls</span>
-    </div>`).join('') : '<div style="color:#94a3b8;font-size:12px">No calls yet — try the AI chat!</div>';
+  document.getElementById('m-success').textContent = `✅ ${s.total_success||0} successful`;
+  const errRate = s.total_calls>0?((s.total_errors/s.total_calls)*100).toFixed(1):'0.0';
+  document.getElementById('m-errors').textContent = errRate+'%';
+  document.getElementById('m-success-rate').textContent = `${s.success_rate_pct||100}% success rate`;
+  const tools = s.top_tools||[];
+  document.getElementById('top-tools').innerHTML = tools.length ? tools.map(([name,count])=>`
+    <div class="v-row"><span class="mono" style="flex:1">${name}</span><span style="font-size:11px;color:#64748b;background:#f1f5f9;padding:1px 8px;border-radius:10px">${count} calls</span></div>`).join('') : '<div style="color:#94a3b8;font-size:12px">No calls yet</div>';
 }
 
-function tick() {
-  document.getElementById('live-time').textContent = new Date().toLocaleTimeString();
-}
-
-function setChat(msg) {
-  document.getElementById('chat-input').value = msg;
-  sendChat();
-}
+// ── Chat ───────────────────────────────────────────────────────
+function setChat(msg) { document.getElementById('chat-input').value=msg; sendChat(); }
 
 async function sendChat() {
   const input = document.getElementById('chat-input');
   const messages = document.getElementById('chat-messages');
   const message = input.value.trim();
   if (!message) return;
-
-  messages.innerHTML += `
-    <div class="chat-msg-user">
-      <span>${message}</span>
-    </div>`;
+  messages.innerHTML += `<div class="chat-msg-user"><span>${message}</span></div>`;
   input.value = '';
   messages.scrollTop = messages.scrollHeight;
-
-  const loadingId = 'loading_' + Date.now();
-  messages.innerHTML += `
-    <div class="chat-msg-loading" id="${loadingId}">
-      <span>🤔 Thinking...</span>
-    </div>`;
+  const lid = 'loading_'+Date.now();
+  messages.innerHTML += `<div class="chat-msg-loading" id="${lid}"><span>🤔 Thinking...</span></div>`;
   messages.scrollTop = messages.scrollHeight;
-
   try {
-    const res = await fetch('/chat', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({message})
-    });
+    const res = await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message})});
     const data = await res.json();
-    document.getElementById(loadingId)?.remove();
-
-    const toolBadge = data.tool_used
-      ? `<div class="tool-badge">🔧 Used: ${data.tool_used}</div>`
-      : '';
-
-    messages.innerHTML += `
-      <div class="chat-msg-bot">
-        ${toolBadge}
-        <span>${data.response || data.error || 'No response'}</span>
-      </div>`;
+    document.getElementById(lid)?.remove();
+    messages.innerHTML += `<div class="chat-msg-bot">${data.tool_used?`<div class="tool-badge">🔧 Used: ${data.tool_used}</div>`:''}<span>${data.response||data.error||'No response'}</span></div>`;
     messages.scrollTop = messages.scrollHeight;
-
-    loadAll();
-    setTimeout(loadAll, 2000);
-    setTimeout(loadAll, 4000);
-
+    loadAll(); setTimeout(loadAll,2000); setTimeout(loadAll,4000);
   } catch(e) {
-    document.getElementById(loadingId)?.remove();
-    messages.innerHTML += `
-      <div class="chat-msg-bot">
-        <span style="color:#dc2626">❌ Error: ${e.message}</span>
-      </div>`;
+    document.getElementById(lid)?.remove();
+    messages.innerHTML += `<div class="chat-msg-bot"><span style="color:#dc2626">❌ Error: ${e.message}</span></div>`;
   }
 }
 
+// ── Sandbox ────────────────────────────────────────────────────
+let sbTools = [];
+let sbSelected = null;
+
+const VPILL = { internet:'vp-internet', mobile:'vp-mobile', travel:'vp-travel', insurance:'vp-insurance' };
+
+async function loadSandboxTools() {
+  if (sbTools.length) return;
+  try {
+    const res = await fetch('/catalog');
+    sbTools = await res.json();
+    renderSbToolList();
+  } catch(e) {
+    document.getElementById('sb-tool-list').innerHTML = `<div style="color:#dc2626;font-size:12px;padding:12px">Failed: ${e.message}</div>`;
+  }
+}
+
+function renderSbToolList() {
+  const list = document.getElementById('sb-tool-list');
+  list.innerHTML = sbTools.map(t => {
+    const [vertical, name] = t.qualified_name.split('__');
+    const pill = VPILL[vertical] || 'vp-internet';
+    return `<div class="sb-tool-item" onclick="sbSelectTool('${t.qualified_name}')" id="sbt_${t.qualified_name.replace(/\W/g,'_')}">
+      <div class="sb-tool-name"><span class="sb-vpill ${pill}">${vertical}</span>${name}</div>
+      <div class="sb-tool-desc">${t.violations?.length ? '⚠ '+t.violations.length+' warning(s)' : '✓ conformant'}</div>
+    </div>`;
+  }).join('');
+}
+
+async function sbSelectTool(qname) {
+  sbSelected = qname;
+  document.querySelectorAll('.sb-tool-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('sbt_' + qname.replace(/\W/g,'_'))?.classList.add('active');
+
+  const [vertical, toolName] = qname.split('__');
+  const pill = VPILL[vertical] || 'vp-internet';
+
+  // Get schema
+  let schema = null;
+  try {
+    const res = await fetch('/openapi-schema');
+    const spec = await res.json();
+    schema = spec.paths?.[`/tools/${qname}/call`]?.post?.requestBody?.content?.['application/json']?.schema;
+  } catch(e) {}
+
+  const props = schema?.properties || {};
+  const required = schema?.required || [];
+
+  const formPanel = document.getElementById('sb-form-panel');
+  formPanel.innerHTML = `
+    <h2>⚙️ Parameters</h2>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+      <span class="sb-vpill ${pill}" style="font-size:11px;padding:3px 10px">${vertical}</span>
+      <span style="font-weight:700;font-size:14px;font-family:monospace">${toolName}</span>
+    </div>
+    <div id="sb-params">
+      ${Object.keys(props).length === 0
+        ? '<div style="color:#94a3b8;font-size:13px;font-family:monospace">No parameters required</div>'
+        : Object.entries(props).map(([key, prop]) => `
+          <div class="sb-param-field">
+            <label>${key}${required.includes(key)?'<span>*</span>':''} <span style="color:#94a3b8">(${prop.type||'string'})</span></label>
+            <input type="${prop.type==='integer'||prop.type==='number'?'number':'text'}" id="sbp_${key}" placeholder="${prop.description||key}">
+          </div>`).join('')
+      }
+    </div>
+    <button class="sb-run-btn" onclick="sbRunTool('${qname}')">▶ Run Tool</button>
+  `;
+
+  document.getElementById('sb-result').innerHTML = `
+    <div class="sb-empty"><div class="sb-empty-icon">⚡</div><div>Click "Run Tool" to test</div></div>`;
+}
+
+async function sbRunTool(qname) {
+  const btn = document.querySelector('.sb-run-btn');
+  btn.disabled = true; btn.textContent = '⏳ Running...';
+
+  const result = document.getElementById('sb-result');
+  result.innerHTML = `<div class="sb-status"><div class="sb-dot sb-dot-loading"></div><span>Calling ${qname}...</span></div>`;
+
+  const params = {};
+  document.querySelectorAll('[id^="sbp_"]').forEach(inp => {
+    const key = inp.id.replace('sbp_','');
+    const val = inp.value.trim();
+    if (val) params[key] = inp.type==='number' ? Number(val) : val;
+  });
+
+  const start = Date.now();
+  try {
+    const res = await fetch(`/tools/${qname}/call`, {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(params)
+    });
+    const data = await res.json();
+    const ms = Date.now() - start;
+
+    result.innerHTML = `
+      <div class="sb-status">
+        <div class="sb-dot sb-dot-ok"></div>
+        <span style="color:#16a34a;font-weight:700">Success</span>
+        <span class="sb-time">${ms}ms</span>
+      </div>
+      ${sbRenderWidget(qname, data)}
+      <div class="sb-json">
+        <div class="sb-json-header">
+          <span>Raw JSON Response</span>
+          <button class="sb-copy-btn" onclick="sbCopyJSON()">Copy</button>
+        </div>
+        <pre id="sb-json-pre">${JSON.stringify(data, null, 2)}</pre>
+      </div>`;
+  } catch(e) {
+    result.innerHTML = `<div class="sb-status"><div class="sb-dot sb-dot-err"></div><span style="color:#dc2626">Error: ${e.message}</span></div>`;
+  }
+  btn.disabled = false; btn.textContent = '▶ Run Tool';
+}
+
+function sbRenderWidget(qname, data) {
+  const items = data.offers || data.plans || data.flights || data.hotels || data.types;
+  if (items && Array.isArray(items)) {
+    return `<div class="sb-widget">
+      <div class="sb-widget-header">🎨 Widget Preview</div>
+      <div class="sb-widget-body">
+        ${items.map(item => `
+          <div class="sb-offer-card">
+            <div>
+              <div class="sb-offer-provider">${item.provider||item.airline||item.name||item.hotel||item.model||'Result'}</div>
+              <div class="sb-offer-detail">${sbFormatDetails(item)}</div>
+            </div>
+            ${item.price||item.monthly||item.price_per_night||item.total
+              ? `<div class="sb-offer-price">€${item.price||item.monthly||item.price_per_night||item.total}<span>/mo</span></div>` : ''}
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  const single = data.best_offer || data.best_plan || data.quote;
+  if (single || data.available !== undefined) {
+    const item = single || data;
+    return `<div class="sb-widget">
+      <div class="sb-widget-header">🎨 Widget Preview</div>
+      <div class="sb-widget-body">
+        <div class="sb-offer-card">
+          <div>
+            <div class="sb-offer-provider">${item.provider||(data.available===true?'✅ Available':data.available===false?'❌ Not Available':'Result')}</div>
+            <div class="sb-offer-detail">${sbFormatDetails(item)}</div>
+          </div>
+          ${item.price||item.monthly_premium?`<div class="sb-offer-price">€${item.price||item.monthly_premium}<span>/mo</span></div>`:''}
+        </div>
+      </div>
+    </div>`;
+  }
+  return '';
+}
+
+function sbFormatDetails(obj) {
+  const skip = ['provider','airline','hotel','name','price','monthly','price_per_night','total','monthly_premium','model','brand'];
+  return Object.entries(obj).filter(([k])=>!skip.includes(k)).slice(0,3).map(([k,v])=>`${k}: ${v}`).join(' · ');
+}
+
+function sbCopyJSON() {
+  const text = document.getElementById('sb-json-pre')?.textContent;
+  if (text) navigator.clipboard.writeText(text);
+}
+
+// ── Init ───────────────────────────────────────────────────────
+function tick() { document.getElementById('live-time').textContent = new Date().toLocaleTimeString(); }
 loadAll();
 tick();
 setInterval(tick, 1000);
