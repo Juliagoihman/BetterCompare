@@ -1,12 +1,14 @@
 #!/bin/bash
+set -e
 
-cd /app/proxy
+echo "Starting vertical MCPs..."
+python verticals/internet/main.py &
+python verticals/mobile/main.py &
+python verticals/travel/main.py &
+python verticals/insurance/main.py &
 
-uvicorn verticals.internet.main:app --port 8801 &
-uvicorn verticals.mobile.main:app --port 8802 &
-uvicorn verticals.travel.main:app --port 8803 &
-uvicorn verticals.insurance.main:app --port 8804 &
-
+# Wait for verticals to be ready
 sleep 2
 
-uvicorn main:app --host 0.0.0.0 --port 8787
+echo "Starting BetterCompare proxy..."
+python proxy/main.py
