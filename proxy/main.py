@@ -524,12 +524,14 @@ async def chat(request: Request):
 
     return {"response": message.content, "tool_used": None}
 
-
 @asynccontextmanager
 async def lifespan(app):
-    await _register_dynamic_tools()
-    yield
+    try:
+        await _register_dynamic_tools()
+    except Exception as e:
+        print("startup warning:", e)
 
+    yield
 
 mcp_app = proxy.streamable_http_app()
 
