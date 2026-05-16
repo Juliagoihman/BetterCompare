@@ -534,7 +534,7 @@ mcp_app = proxy.streamable_http_app()
 
 combined = Starlette(
     routes=[
-        Mount("/mcp", app=mcp_app),
+        Mount("/", app=mcp_app),
         Mount("/", app=admin),
     ],
     lifespan=lifespan,
