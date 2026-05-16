@@ -453,8 +453,12 @@ async def chat(request: Request):
 async def lifespan(app):
     await _register_dynamic_tools()
     yield
+from starlette.applications import Starlette
+from starlette.routing import Mount, Route
+from starlette.requests import Request as StarletteRequest
+from starlette.responses import Response
 
-
+# Wrap mcp_app so it handles /mcp prefix correctly
 mcp_app = proxy.streamable_http_app()
 
 combined = Starlette(
@@ -472,3 +476,4 @@ combined.add_middleware(
 
 if __name__ == "__main__":
     uvicorn.run(combined, host="0.0.0.0", port=8787)
+
