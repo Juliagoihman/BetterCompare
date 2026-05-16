@@ -457,12 +457,24 @@ async def lifespan(app):
 
 mcp_app = proxy.streamable_http_app()
 
+# Mount MCP first, admin as fallback
 combined = Starlette(
     routes=[
         Mount("/mcp", app=mcp_app),
         Mount("/", app=admin),
     ],
     lifespan=lifespan,
+)
+
+# Add CORS middleware to handle OPTIONS
+from starlette.middleware.cors import CORSMiddleware
+
+combined.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 combined.add_middleware(
