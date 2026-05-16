@@ -20,16 +20,12 @@ from monitoring.stats import stats
 from monitoring.session_store import session_store
 from feedback.store import feedback_store
 
-# ─── Vertical URLs ─────────────────────────────────────────────────────────────
-
 VERTICALS = {
     "internet":  "http://127.0.0.1:8801/mcp",
     "mobile":    "http://127.0.0.1:8802/mcp",
     "travel":    "http://127.0.0.1:8803/mcp",
     "insurance": "http://127.0.0.1:8804/mcp",
 }
-
-# ─── Tool loading via real MCP client ─────────────────────────────────────────
 
 async def _fetch_tools_from_vertical(vertical: str, url: str) -> list:
     tools = []
@@ -69,8 +65,6 @@ async def _load_all_tools(vertical_filter: str = None) -> list:
         tools = await _fetch_tools_from_vertical(vertical, url)
         all_tools.extend(tools)
     return all_tools
-
-# ─── MCP Proxy Server ──────────────────────────────────────────────────────────
 
 proxy = FastMCP(
     "bettercompare-proxy",
@@ -126,8 +120,6 @@ async def _register_dynamic_tools():
         )
         _tool_registry[namespaced] = {"vertical": vertical, "original_name": original}
     print(f"[proxy] Registered {len(all_tools)} tools")
-
-# ─── FastAPI side-car ──────────────────────────────────────────────────────────
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
@@ -241,7 +233,91 @@ async def validate_tool(request: Request):
         }
     }
 
-# ─── Combined ASGI app ────────────────────────────────────────────────────────
+@admin.get("/openapi-schema")
+async def openapi_schema():
+    tools = await _load_all_tools()
+    paths = {}
+    for tool in tools:
+        name = tool["name"]
+        schema = tool.get("inputSchema", {})
+        paths[f"/tools/{name}/call"] = {
+            "post": {
+                "operationId": name,
+                "summary": tool.get("description", f"Call {name}"),
+                "requestBody": {
+                    "required": True,
+                    "content": {
+                        "application/json": {
+                            "schema": schema if schema else {
+                                "type": "object",
+                                "properties": {}
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Tool result",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "result": {
+                                            "type": "object",
+                                            "description": "Tool execution result"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    return {
+        "openapi": "3.1.0",
+        "info": {
+            "title": "BetterCompare MCP Proxy",
+            "version": "1.0.0",
+            "description": "Compare internet, mobile, travel and insurance offers"
+        },
+        "servers": [{"url": "https://bettercompare.dev"}],
+        "paths": paths
+    }
+
+@admin.post("/tools/{tool_path:path}/call")
+async def call_tool_rest(tool_path: str, request: Request):
+    body = await request.json()
+    if "__" not in tool_path:
+        return JSONResponse({"error": "Invalid tool path"}, status_code=400)
+    vertical, original_name = tool_path.split("__", 1)
+    url = VERTICALS.get(vertical)
+    if not url:
+        return JSONResponse({"error": f"Unknown vertical: {vertical}"}, status_code=404)
+    correlation_id = str(uuid.uuid4())[:8]
+    tracer.start(correlation_id, tool_path, vertical)
+    call_start = datetime.utcnow()
+    try:
+        async with streamable_http_client(url) as (read, write, _):
+            async with ClientSession(read, write) as session:
+                await session.initialize()
+                result = await session.call_tool(original_name, body)
+                tracer.end(correlation_id, "ok")
+                stats.record_call(vertical, tool_path)
+                latency_ms = round(
+                    (datetime.utcnow() - call_start).total_seconds() * 1000
+                )
+                session_store.record("chatgpt", tool_path, vertical, "ok", latency_ms)
+                for block in result.content:
+                    if hasattr(block, "text"):
+                        return JSONResponse(json.loads(block.text))
+                return JSONResponse({"status": "ok"})
+    except Exception as e:
+        tracer.end(correlation_id, "error", str(e))
+        stats.record_error(vertical)
+        return JSONResponse({"error": str(e)}, status_code=500)
 
 @asynccontextmanager
 async def lifespan(app):
