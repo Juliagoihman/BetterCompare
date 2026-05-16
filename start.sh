@@ -7,7 +7,6 @@ python verticals/mobile/main.py &
 python verticals/travel/main.py &
 python verticals/insurance/main.py &
 
-# Wait for verticals to be ready
 sleep 2
 
 echo "Starting BetterCompare proxy..."
