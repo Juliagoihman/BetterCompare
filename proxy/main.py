@@ -291,7 +291,7 @@ async def reload():
 
 @admin.get("/versions")
 async def versions():
-    from proxy.conformance.engine import VERSION_POLICY
+   from conformance.engine import VERSION_POLICY
 
     manifest = get_version_manifest()
     manifest["conformance_policy"] = {
