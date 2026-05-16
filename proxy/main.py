@@ -447,7 +447,15 @@ async def chat(request: Request):
             "tool_used": tool_name,
         }
     return {"response": message.content, "tool_used": None}
+    
+from starlette.responses import Response
+from starlette.requests import Request as StarletteRequest
 
+@admin.api_route("/mcp", methods=["GET", "POST", "DELETE", "OPTIONS"])
+@admin.api_route("/mcp/{path:path}", methods=["GET", "POST", "DELETE", "OPTIONS"])
+async def mcp_proxy(request: Request, path: str = ""):
+    # Forward to internal mcp app
+    return JSONResponse({"detail": "Use POST with MCP protocol"})
 
 @asynccontextmanager
 async def lifespan(app):
