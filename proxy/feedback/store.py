@@ -9,7 +9,6 @@ class FeedbackStore:
     def record(self, vertical: str, tool: dict, report: dict):
         tool_name = tool.get("name", "unknown")
         qualified_name = f"{vertical}__{tool_name}"
-
         entry = {
             "vertical": vertical,
             "tool": tool_name,
@@ -19,15 +18,11 @@ class FeedbackStore:
             "violations": report["violations"],
             "checked_at": report["checked_at"]
         }
-
-        # Update feedback per vertical
         self._data[vertical] = [
             e for e in self._data[vertical]
             if e["tool"] != tool_name
         ]
         self._data[vertical].append(entry)
-
-        # Update catalog
         self._catalog = [
             e for e in self._catalog
             if e["qualified_name"] != qualified_name
@@ -49,8 +44,6 @@ class FeedbackStore:
                 ),
                 "tools": entries
             }
-
-        # All verticals
         all_entries = list(self._catalog)
         return {
             "total": len(all_entries),
@@ -67,13 +60,11 @@ class FeedbackStore:
         }
 
     def get_catalog(self):
-        return sorted(
-            self._catalog,
-            key=lambda x: x["score"]
-        )
-def clear(self):
-    self._data.clear()
-    self._catalog.clear()
-    
+        return sorted(self._catalog, key=lambda x: x["score"])
+
+    def clear(self):
+        self._data.clear()
+        self._catalog.clear()
+
 # Global instance
 feedback_store = FeedbackStore()
