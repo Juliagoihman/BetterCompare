@@ -1,87 +1,41 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
-from typing import Any, Dict
+# verticals/internet/main.py
+from mcp.server.fastmcp import FastMCP
 
-app = FastAPI(title="Internet MCP")
+mcp = FastMCP("internet-vertical")
 
-@app.get("/")
-def home():
-    return {"vertical": "internet", "status": "running"}
-
-@app.get("/tools")
-def tools():
-    return [
-        {
-            "name": "compare_internet_offers",
-            "description": "Compare internet offers for a given address and minimum speed.",
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "address": {"type": "string", "description": "Street address"},
-                    "min_speed": {"type": "integer", "description": "Minimum speed in Mbit/s"}
-                },
-                "required": ["address"]
-            }
-        },
-        {
-            "name": "get_best_internet_deal",
-            "description": "Get the single best internet deal for a given address.",
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "address": {"type": "string"},
-                    "max_price": {"type": "number", "description": "Maximum monthly price in EUR"}
-                },
-                "required": ["address"]
-            }
-        },
-        {
-            "name": "check_availability",
-            "description": "Check if internet service is available at a given address.",
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "address": {"type": "string"},
-                    "provider": {"type": "string"}
-                },
-                "required": ["address"]
-            }
-        }
-    ]
-
-class CallRequest(BaseModel):
-    arguments: Dict[str, Any] = {}
-
-@app.post("/tools/compare_internet_offers/call")
-def compare_internet_offers(req: CallRequest):
-    address = req.arguments.get("address", "unknown")
-    min_speed = req.arguments.get("min_speed", 50)
+@mcp.tool()
+def compare_internet_offers(address: str, min_speed: int = 0) -> dict:
+    """Compare internet offers for a given address and minimum speed."""
     return {
-        "results": [
-            {"provider": "Telekom", "speed": 250, "price": 39.99, "contract_months": 24},
-            {"provider": "Vodafone", "speed": 100, "price": 29.99, "contract_months": 12},
-            {"provider": "O2", "speed": 50, "price": 19.99, "contract_months": 24}
+        "offers": [
+            {"provider": "Telekom", "speed": 100, "price": 39.99, "contract_months": 24},
+            {"provider": "Vodafone", "speed": 250, "price": 44.99, "contract_months": 12},
+            {"provider": "O2", "speed": 50, "price": 29.99, "contract_months": 24},
         ],
         "address": address,
-        "min_speed": min_speed
+        "min_speed_filter": min_speed
     }
 
-@app.post("/tools/get_best_internet_deal/call")
-def get_best_internet_deal(req: CallRequest):
-    address = req.arguments.get("address", "unknown")
-    max_price = req.arguments.get("max_price", 50)
+@mcp.tool()
+def get_best_internet_deal(address: str, max_price: float = 999.0) -> dict:
+    """Get the single best internet deal for a given address."""
     return {
-        "best_deal": {"provider": "Vodafone", "speed": 100, "price": 29.99, "contract_months": 12},
+        "best_offer": {"provider": "Telekom", "speed": 100, "price": 39.99},
         "address": address,
-        "max_price": max_price
+        "filtered_by_max_price": max_price
     }
 
-@app.post("/tools/check_availability/call")
-def check_availability(req: CallRequest):
-    address = req.arguments.get("address", "unknown")
+@mcp.tool()
+def check_availability(address: str, provider: str = None) -> dict:
+    """Check if internet service is available at a given address."""
     return {
         "available": True,
         "address": address,
-        "providers": ["Telekom", "Vodafone", "O2"],
-        "max_speed": 250
+        "provider": provider or "all",
+        "technologies": ["DSL", "Fiber", "Cable"]
     }
+
+if __name__ == "__main__":
+    import uvicorn
+    app = mcp.streamable_http_app()
+    uvicorn.run(app, host="0.0.0.0", port=8801)
