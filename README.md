@@ -1,6 +1,6 @@
 # GenDev9 – CHECK24 ChatGPT App Challenge
 **BetterCompare – One Search. Every Comparison.**
-[🎥 Demo Video](#) · [📊 Dashboard](https://bettercompare.dev/dashboard) · [🧪 Widget Sandbox](https://bettercompare.dev/dashboard)
+[🎥 Demo Video](https://youtu.be/QZDztr0qOPA) · [📊 Dashboard](https://bettercompare.dev/dashboard) · [🧪 Widget Sandbox](https://bettercompare.dev/dashboard)
 
 > 🇩🇪 **Deutsche Version** weiter unten / German version below
 ---
@@ -59,7 +59,7 @@ The heart ❤️ of the project is the Conformance Engine: it validates every to
 
 ## 🎥 Video
 
-📺 **Demo Video:** `<VIDEO_LINK_HERE>`
+📺 **Demo Video:** `https://youtu.be/QZDztr0qOPA`
 
 The video covers:
 - Architecture explanation
@@ -473,7 +473,7 @@ I'm happy to answer any questions about the project and welcome any feedback.
 
 # GenDev9 – CHECK24 ChatGPT App Challenge
 **BetterCompare – Eine Suche. Alle Vergleiche.**
-[🎥 Demo Video](#) · [📊 Dashboard](https://bettercompare.dev/dashboard) · [🧪 Widget Sandbox](https://bettercompare.dev/dashboard)
+[🎥 Demo Video](https://youtu.be/QZDztr0qOPA) · [📊 Dashboard](https://bettercompare.dev/dashboard) · [🧪 Widget Sandbox](https://bettercompare.dev/dashboard)
 
 ---
 ## Einleitung
@@ -530,7 +530,7 @@ Das Herzstück ❤️ des Projekts ist die Conformance Engine: Sie prüft jedes 
 
 ## 🎥 Video
 
-📺 **Demo Video:** `<VIDEO_LINK_HERE>`
+📺 **Demo Video:** `https://youtu.be/QZDztr0qOPA`
 
 Das Video zeigt:
 - Architektur-Erklärung
