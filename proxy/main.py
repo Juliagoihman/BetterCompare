@@ -456,18 +456,39 @@ async def lifespan(app):
     await _register_dynamic_tools()
     yield
 
+# Erstelle eine einzige FastAPI App
+from fastapi import FastAPI as MainApp
 
+main = MainApp(lifespan=lifespan)
+
+# Alle admin routes kopieren
+main.get("/")(root)
+main.get("/health")(health)
+main.get("/dashboard", response_class=HTMLResponse)(dashboard)
+main.get("/catalog")(catalog)
+main.get("/feedback")(feedback)
+main.get("/traces")(traces)
+main.post("/traces/clear")(clear_traces)
+main.get("/stats")(get_stats)
+main.get("/sessions")(sessions)
+main.post("/sessions/clear")(clear_sessions)
+main.post("/feedback/clear")(clear_feedback)
+main.post("/reload")(reload)
+main.get("/versions")(versions)
+main.get("/versions/check")(check_version)
+main.post("/validate")(validate_tool)
+main.get("/openapi-schema")(openapi_schema)
+main.post("/chat")(chat)
+main.post("/tools/{tool_path:path}/call")(call_tool_rest)
+
+if os.path.isdir(dashboard_dir):
+    main.mount("/static", StaticFiles(directory=dashboard_dir), name="static")
+
+# MCP direkt mounten
 mcp_app = proxy.streamable_http_app()
+main.mount("/mcp", mcp_app)
 
-combined = Starlette(
-    routes=[
-        Mount("/mcp", app=mcp_app),
-        Mount("/", app=admin),
-    ],
-    lifespan=lifespan,
-)
-
-combined.add_middleware(
+main.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
@@ -475,10 +496,5 @@ combined.add_middleware(
     allow_headers=["*"],
 )
 
-combined.add_middleware(
-    TrustedHostMiddleware,
-    allowed_hosts=["*"],
-)
-
 if __name__ == "__main__":
-    uvicorn.run(combined, host="0.0.0.0", port=8787)
+    uvicorn.run(main, host="0.0.0.0", port=8787)
