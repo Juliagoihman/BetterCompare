@@ -456,7 +456,7 @@ async def lifespan(app):
     yield
 
 
-mcp_app = proxy.streamable_http_app()
+mcp_app = proxy.streamable_http_app(path="/mcp")
 
 combined = Starlette(
     routes=[
