@@ -139,10 +139,10 @@ BetterCompare/
 ## ✅ Challenge Requirements
 
 ### Single ChatGPT-facing Proxy MCP
-- Exactly one MCP endpoint: `POST https://bettercompare.dev/mcp`
-- The proxy implements the MCP JSON-RPC protocol directly, giving full control over tool aggregation, routing, and conformance — while all vertical backends use the official MCP Python SDK with Streamable HTTP
-- All verticals hidden behind the proxy
-- Transport layer deliberately decoupled from business logic — another MCP host (e.g. Claude) could reuse the core
+- [x] Exactly one MCP endpoint: `POST https://bettercompare.dev/mcp`
+- [x] The proxy implements the MCP JSON-RPC protocol directly, giving full control over tool aggregation, routing, and conformance — while all vertical backends use the official MCP Python SDK with Streamable HTTP
+- [x] All verticals hidden behind the proxy
+- [x] Transport layer deliberately decoupled from business logic — another MCP host (e.g. Claude) could reuse the core
 
 → Full details: [docs/EN_01_overview.md](docs/EN_01_overview.md)
 
@@ -584,10 +584,11 @@ BetterCompare/
 ## ✅ Anforderungen der Challenge
 
 ### Einzelner ChatGPT-seitiger Proxy MCP
-- Genau ein MCP-Endpoint: `POST https://bettercompare.dev/mcp`
-- Der Proxy implementiert das MCP JSON-RPC Protokoll direkt für volle Kontrolle über Aggregation, Routing und Conformance — die Vertical-Backends nutzen das offizielle MCP Python SDK mit Streamable HTTP
-- Alle Verticals hinter dem Proxy versteckt
-- Transport-Layer bewusst von Business-Logik getrennt — ein anderer MCP-Host (z.B. Claude) könnte den Kern wiederverwenden
+- [x] Genau ein MCP-Endpoint: `POST https://bettercompare.dev/mcp`
+- [x] Der Proxy implementiert das MCP JSON-RPC Protokoll direkt für volle Kontrolle über Aggregation, Routing und Conformance — die Vertical-Backends nutzen das offizielle MCP Python SDK mit Streamable HTTP
+- [x] Alle Verticals hinter dem Proxy versteckt
+- [x] Transport-Layer bewusst von Business-Logik getrennt — ein anderer MCP-Host (z.B. Claude) könnte den Kern wiederverwenden
+
 
 → Vollständige Details: [docs/DE_01_uebersicht.md](docs/DE_01_uebersicht.md)
 
