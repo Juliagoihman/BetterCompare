@@ -19,6 +19,26 @@ The heart ❤️ of the project is the Conformance Engine: it validates every to
 ![Check24 Screenshot](docs/screenshots/Check24.png)
 
 ---
+## 📋 Table of Contents
+
+- [Intro](#intro)
+- [🚀 Live Demo](#-live-demo)
+- [🎥 Video](#-video)
+- [🔍 How to Test](#-how-to-test)
+- [📁 Repository Structure](#-repository-structure)
+- [✅ Challenge Requirements](#-challenge-requirements)
+- [🏗️ Architecture](#️-architecture)
+- [🔌 API Reference](#-api-reference)
+- [⭐ Optional Features](#-optional-features)
+- [🔒 Security Considerations](#-security-considerations)
+- [☁️ Deployment](#️-deployment)
+- [🚧 Known Limitations](#-known-limitations--trade-offs)
+- [🧠 Key Design Decisions](#-key-design-decisions)
+- [🎓 Learnings & Reflections](#-learnings--reflections)
+- [📚 Documentation](#-documentation)
+- [🇩🇪 Deutsche Version](#-deutsche-version)
+
+> 👉 **Reviewer? Start here:** [How to Test](#-how-to-test) · [Live Demo](#-live-demo) · [MCP Endpoint](https://bettercompare.dev/mcp)
 
 ## 🚀 Live Demo
 
@@ -53,6 +73,7 @@ The video covers:
 ---
 
 ## 🔍 How to Test
+![MCP Inspector](docs/screenshots/MCP_Inspector.png)
 
 ```bash
 # 1. Check vertical health
@@ -60,8 +81,6 @@ curl https://bettercompare.dev/health
 
 # 2. Connect MCP Inspector
 npx @modelcontextprotocol/inspector https://bettercompare.dev/mcp
-
-![MCP Inspector](docs/screenshots/MCP_Inspector.png)
 
 # 3. See conformance feedback
 curl https://bettercompare.dev/feedback?vertical=insurance
@@ -451,6 +470,25 @@ Das Herzstück ❤️ des Projekts ist die Conformance Engine: Sie prüft jedes 
 
 ![Check24 Screenshot](docs/screenshots/Check24.png)
 
+## 📋 Inhaltsverzeichnis
+
+- [Einleitung](#einleitung)
+- [🚀 Live Demo](#-live-demo-1)
+- [🎥 Video](#-video-1)
+- [🔍 Wie Reviewer testen können](#-wie-reviewer-testen-können)
+- [📁 Repository-Struktur](#-repository-struktur)
+- [✅ Anforderungen der Challenge](#-anforderungen-der-challenge)
+- [🏗️ Architektur](#️-architektur)
+- [🔌 API-Referenz](#-api-referenz)
+- [⭐ Optionale Features](#-optionale-features)
+- [🔒 Sicherheitsüberlegungen](#-sicherheitsüberlegungen)
+- [☁️ Deployment](#️-deployment-1)
+- [🚧 Bekannte Limitierungen](#-bekannte-limitierungen)
+- [🧠 Wichtige Design-Entscheidungen](#-wichtige-design-entscheidungen)
+- [🎓 Learnings & Reflexionen](#-learnings--reflexionen)
+- [📚 Dokumentation](#-dokumentation-1)
+
+> 👉 **Reviewer? Hier starten:** [Wie testen](#-wie-reviewer-testen-können) · [Live Demo](#-live-demo-1) · [MCP Endpoint](https://bettercompare.dev/mcp)
 ---
 
 ## 🚀 Live Demo
@@ -486,6 +524,7 @@ Das Video zeigt:
 ---
 
 ## 🔍 Wie Reviewer testen können
+![MCP Inspector](docs/screenshots/MCP_Inspector.png)
 
 ```bash
 # 1. Verticals auf Erreichbarkeit prüfen
