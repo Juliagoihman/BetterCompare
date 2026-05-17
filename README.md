@@ -65,7 +65,6 @@ The video covers:
 - Architecture explanation
 - Live dashboard walkthrough
 - Widget Sandbox demo
-- ChatGPT tool call demonstration
 - Conformance engine in action
 - Versioning and feedback system
   
@@ -536,7 +535,6 @@ Das Video zeigt:
 - Architektur-Erklärung
 - Live-Dashboard-Walkthrough
 - Widget Sandbox Demo
-- ChatGPT Tool-Call Demonstration
 - Conformance Engine in Aktion
 - Versioning und Feedback-System
 
