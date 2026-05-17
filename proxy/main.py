@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.applications import Starlette
 from starlette.routing import Mount
 from starlette.middleware.trustedhost import TrustedHostMiddleware
+from starlette.middleware.cors import CORSMiddleware
 
 from contextlib import asynccontextmanager
 import uvicorn
@@ -447,15 +448,7 @@ async def chat(request: Request):
             "tool_used": tool_name,
         }
     return {"response": message.content, "tool_used": None}
-    
-from starlette.responses import Response
-from starlette.requests import Request as StarletteRequest
 
-@admin.api_route("/mcp", methods=["GET", "POST", "DELETE", "OPTIONS"])
-@admin.api_route("/mcp/{path:path}", methods=["GET", "POST", "DELETE", "OPTIONS"])
-async def mcp_proxy(request: Request, path: str = ""):
-    # Forward to internal mcp app
-    return JSONResponse({"detail": "Use POST with MCP protocol"})
 
 @asynccontextmanager
 async def lifespan(app):
@@ -465,7 +458,6 @@ async def lifespan(app):
 
 mcp_app = proxy.streamable_http_app()
 
-# Mount MCP first, admin as fallback
 combined = Starlette(
     routes=[
         Mount("/mcp", app=mcp_app),
@@ -473,9 +465,6 @@ combined = Starlette(
     ],
     lifespan=lifespan,
 )
-
-# Add CORS middleware to handle OPTIONS
-from starlette.middleware.cors import CORSMiddleware
 
 combined.add_middleware(
     CORSMiddleware,
