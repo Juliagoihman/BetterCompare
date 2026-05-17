@@ -11,5 +11,4 @@ python verticals/insurance/main.py &
 sleep 2
 
 echo "Starting BetterCompare proxy..."
-cd /app/proxy && python main.py &
-python mcp_server.py
+cd /app/proxy && python main.py
