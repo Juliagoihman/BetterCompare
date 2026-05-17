@@ -115,6 +115,7 @@ async def _tools_call_internal(tool_name: str, arguments: dict):
 
 proxy = FastMCP(
     "bettercompare-proxy",
+    stateless_http=True,
     instructions=(
         "BetterCompare aggregates CHECK24 comparison verticals: "
         "internet, mobile, travel, and insurance. "
@@ -456,7 +457,7 @@ async def lifespan(app):
     yield
 
 
-mcp_app = proxy.streamable_http_app(path="/mcp")
+mcp_app = proxy.streamable_http_app()
 
 combined = Starlette(
     routes=[
