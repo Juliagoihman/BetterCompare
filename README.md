@@ -526,7 +526,6 @@ Das Video zeigt:
 
 ## 🔍 Wie Reviewer testen können
 ![MCP Inspector](docs/screenshots/MCP_Inspector.png)
-
 ```bash
 # 1. Verticals auf Erreichbarkeit prüfen
 curl https://bettercompare.dev/health
@@ -537,15 +536,12 @@ npx @modelcontextprotocol/inspector https://bettercompare.dev/mcp
 # 3. Conformance-Feedback ansehen
 curl https://bettercompare.dev/feedback?vertical=insurance
 
-# 4. Tool direkt testen
-curl -X POST https://bettercompare.dev/tools/internet__compare_internet_offers/call \
-  -H "Content-Type: application/json" \
-  -d '{"address": "Marienplatz 1, München"}'
-
-# 5. Dashboard öffnen
+# 4. Dashboard öffnen
 https://bettercompare.dev/dashboard
-```
 
+# 5. Tool in der Widget Sandbox testen
+https://bettercompare.dev/dashboard → Widget Sandbox Tab → Tool auswählen → Run
+```
 ---
 
 ## 📁 Repository-Struktur
