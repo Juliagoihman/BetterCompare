@@ -452,19 +452,13 @@ async def chat(request: Request):
 
 # Am Ende von main.py - ersetze alles ab @asynccontextmanager
 
-@asynccontextmanager
-async def lifespan(app):
-    await _register_dynamic_tools()
-    yield
-
-mcp_app = proxy.streamable_http_app()
-
-# Kombiniere beide lifespans
-@asynccontextmanager
+@asynccontextmanager  
 async def combined_lifespan(app):
     async with mcp_app.router.lifespan_context(app):
         await _register_dynamic_tools()
         yield
+
+mcp_app = proxy.streamable_http_app()
 
 app = Starlette(
     routes=[Mount("/", app=mcp_app)],
