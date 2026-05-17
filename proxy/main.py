@@ -452,21 +452,34 @@ async def chat(request: Request):
 
 # Am Ende von main.py - ersetze alles ab @asynccontextmanager
 
-@asynccontextmanager  
-async def combined_lifespan(app):
-    async with mcp_app.router.lifespan_context(app):
-        await _register_dynamic_tools()
-        yield
+@asynccontextmanager
+async def lifespan(app):
+    await _register_dynamic_tools()
+    yield
+
 
 mcp_app = proxy.streamable_http_app()
 
-app = Starlette(
-    routes=[Mount("/", app=mcp_app)],
-    lifespan=combined_lifespan,
+combined = Starlette(
+    routes=[
+        Mount("/mcp", app=mcp_app),
+        Mount("/", app=admin),
+    ],
+    lifespan=lifespan,
 )
 
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
+combined.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+combined.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=["*"],
+)
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8787)
+    uvicorn.run(combined, host="0.0.0.0", port=8787)
