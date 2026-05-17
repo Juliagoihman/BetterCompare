@@ -86,13 +86,11 @@ npx @modelcontextprotocol/inspector https://bettercompare.dev/mcp
 # 3. See conformance feedback
 curl https://bettercompare.dev/feedback?vertical=insurance
 
-# 4. Test a tool directly
-curl -X POST https://bettercompare.dev/tools/internet__compare_internet_offers/call \
-  -H "Content-Type: application/json" \
-  -d '{"address": "Marienplatz 1, München"}'
-
-# 5. Open the dashboard
+# 4. Open the dashboard
 https://bettercompare.dev/dashboard
+
+# 5. Test any tool in the Widget Sandbox
+https://bettercompare.dev/dashboard → Widget Sandbox Tab → Select tool → Run
 ```
 
 ---
