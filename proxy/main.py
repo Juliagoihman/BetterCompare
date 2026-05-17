@@ -450,51 +450,86 @@ async def chat(request: Request):
         }
     return {"response": message.content, "tool_used": None}
 
+# Am Ende von main.py - ersetze alles ab @asynccontextmanager
 
 @asynccontextmanager
 async def lifespan(app):
     await _register_dynamic_tools()
     yield
 
-# Erstelle eine einzige FastAPI App
-from fastapi import FastAPI as MainApp
-
-main = MainApp(lifespan=lifespan)
-
-# Alle admin routes kopieren
-main.get("/")(root)
-main.get("/health")(health)
-main.get("/dashboard", response_class=HTMLResponse)(dashboard)
-main.get("/catalog")(catalog)
-main.get("/feedback")(feedback)
-main.get("/traces")(traces)
-main.post("/traces/clear")(clear_traces)
-main.get("/stats")(get_stats)
-main.get("/sessions")(sessions)
-main.post("/sessions/clear")(clear_sessions)
-main.post("/feedback/clear")(clear_feedback)
-main.post("/reload")(reload)
-main.get("/versions")(versions)
-main.get("/versions/check")(check_version)
-main.post("/validate")(validate_tool)
-main.get("/openapi-schema")(openapi_schema)
-main.post("/chat")(chat)
-main.post("/tools/{tool_path:path}/call")(call_tool_rest)
-
-if os.path.isdir(dashboard_dir):
-    main.mount("/static", StaticFiles(directory=dashboard_dir), name="static")
-
-# MCP direkt mounten
+# MCP läuft auf Root
 mcp_app = proxy.streamable_http_app()
-main.mount("/mcp", mcp_app)
 
-main.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+# Admin routes direkt zur MCP app hinzufügen via custom routes
+@proxy.custom_route("/health", methods=["GET"])
+async def health_route(request):
+    from starlette.responses import JSONResponse as SJ
+    results = {}
+    async with httpx.AsyncClient(timeout=3.0) as client:
+        for name, url in VERTICALS.items():
+            try:
+                await client.get(url.replace("/mcp", ""))
+                results[name] = "ok"
+            except Exception:
+                results[name] = "unreachable"
+    return SJ(results)
+
+@proxy.custom_route("/dashboard", methods=["GET"])
+async def dashboard_route(request):
+    from starlette.responses import HTMLResponse as HR
+    path = os.path.join(dashboard_dir, "index.html")
+    with open(path, encoding="utf-8") as f:
+        return HR(f.read())
+
+@proxy.custom_route("/feedback", methods=["GET"])
+async def feedback_route(request):
+    from starlette.responses import JSONResponse as SJ
+    vertical = request.query_params.get("vertical")
+    return SJ(feedback_store.get(vertical))
+
+@proxy.custom_route("/catalog", methods=["GET"])
+async def catalog_route(request):
+    from starlette.responses import JSONResponse as SJ
+    return SJ(feedback_store.get_catalog())
+
+@proxy.custom_route("/versions", methods=["GET"])
+async def versions_route(request):
+    from starlette.responses import JSONResponse as SJ
+    from conformance.engine import VERSION_POLICY
+    manifest = get_version_manifest()
+    manifest["conformance_policy"] = {"current": CURRENT_VERSION, "policies": VERSION_POLICY}
+    return SJ(manifest)
+
+@proxy.custom_route("/traces", methods=["GET"])
+async def traces_route(request):
+    from starlette.responses import JSONResponse as SJ
+    return SJ(tracer.get_all())
+
+@proxy.custom_route("/stats", methods=["GET"])
+async def stats_route(request):
+    from starlette.responses import JSONResponse as SJ
+    return SJ(stats.get_all())
+
+@proxy.custom_route("/sessions", methods=["GET"])
+async def sessions_route(request):
+    from starlette.responses import JSONResponse as SJ
+    return SJ(session_store.get_all())
+
+mcp_app = proxy.streamable_http_app()
+
+from starlette.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
+
+app = Starlette(
+    routes=[Mount("/", app=mcp_app)],
+    lifespan=lifespan,
 )
 
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
+
+if os.path.isdir(dashboard_dir):
+    app.mount("/static", StaticFiles(directory=dashboard_dir), name="static")
+
 if __name__ == "__main__":
-    uvicorn.run(main, host="0.0.0.0", port=8787)
+    uvicorn.run(app, host="0.0.0.0", port=8787)
