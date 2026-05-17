@@ -61,6 +61,8 @@ curl https://bettercompare.dev/health
 # 2. Connect MCP Inspector
 npx @modelcontextprotocol/inspector https://bettercompare.dev/mcp
 
+![MCP Inspector](docs/screenshots/MCP_Inspector.png)
+
 # 3. See conformance feedback
 curl https://bettercompare.dev/feedback?vertical=insurance
 
