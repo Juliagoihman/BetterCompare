@@ -418,7 +418,7 @@ Full documentation in the `docs/` folder:
 
 ## Outro
 
-I hope BetterCompare demonstrates how I approach complex architecture problems: with a focus on robustness, clear feedback for other teams, and a system that holds up cleanly under real conditions.
+I hope BetterCompare demonstrates how I approach complex architecture problems: with a focus on robustness, clear feedback for other participants, and a system that holds up cleanly under real conditions.
 
 I'm happy to answer any questions about the project and welcome any feedback.
 
@@ -747,7 +747,7 @@ https://bettercompare.dev
 
 ## Outro
 
-Ich hoffe, BetterCompare zeigt, wie ich komplexe Architektur-Probleme angehe: mit Fokus auf Robustheit, klarem Feedback für andere Teams und einem System das unter realen Bedingungen standhält.
+Ich hoffe, BetterCompare zeigt, wie ich komplexe Architektur-Probleme angehe: mit Fokus auf Robustheit, klarem Feedback für andere Teilnehmer und einem System das unter realen Bedingungen standhält.
 
 Ich beantworte gerne Fragen zum Projekt und freue mich über jedes Feedback.
 
