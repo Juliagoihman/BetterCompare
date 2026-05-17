@@ -450,7 +450,64 @@ async def chat(request: Request):
         }
     return {"response": message.content, "tool_used": None}
 
-# Am Ende von main.py - ersetze alles ab @asynccontextmanager
+
+# ── MCP JSON-RPC Handler ──────────────────────────────────────────────────────
+
+@admin.post("/mcp")
+async def mcp_jsonrpc(request: Request):
+    body = await request.json()
+    method = body.get("method")
+    req_id = body.get("id", 1)
+    vertical_filter = (
+        request.query_params.get("vertical") or
+        request.headers.get("x-vertical")
+    )
+
+    if method == "initialize":
+        return {
+            "jsonrpc": "2.0", "id": req_id,
+            "result": {
+                "protocolVersion": "2024-11-05",
+                "capabilities": {"tools": {"listChanged": True}},
+                "serverInfo": {"name": "bettercompare-mcp-proxy", "version": "1.0.0"}
+            }
+        }
+
+    elif method == "tools/list":
+        tools = await _load_all_tools(vertical_filter)
+        return {
+            "jsonrpc": "2.0", "id": req_id,
+            "result": {
+                "tools": [
+                    {
+                        "name": t["name"],
+                        "description": t.get("description", ""),
+                        "inputSchema": t.get("inputSchema", {})
+                    }
+                    for t in tools
+                ]
+            }
+        }
+
+    elif method == "tools/call":
+        params = body.get("params", {})
+        tool_name = params.get("name", "")
+        arguments = params.get("arguments", {})
+        result = await _tools_call_internal(tool_name, arguments)
+        return {
+            "jsonrpc": "2.0", "id": req_id,
+            "result": {
+                "content": [{"type": "text", "text": json.dumps(result)}]
+            }
+        }
+
+    return {
+        "jsonrpc": "2.0", "id": req_id,
+        "error": {"code": -32601, "message": f"Method not found: {method}"}
+    }
+
+
+# ── App ───────────────────────────────────────────────────────────────────────
 
 @asynccontextmanager
 async def lifespan(app):
@@ -458,11 +515,8 @@ async def lifespan(app):
     yield
 
 
-mcp_app = proxy.streamable_http_app()
-
 combined = Starlette(
     routes=[
-        Mount("/mcp", app=mcp_app),
         Mount("/", app=admin),
     ],
     lifespan=lifespan,
