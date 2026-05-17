@@ -68,10 +68,11 @@ The video covers:
 - ChatGPT tool call demonstration
 - Conformance engine in action
 - Versioning and feedback system
-- 
+  
 You can find the complete CHECK24 presentation here:
 
 👉 [Open PDF](docs/BetterCompare_CHECK24.pdf)
+
 ---
 
 ## 🔍 How to Test
@@ -542,6 +543,7 @@ Das Video zeigt:
 Die vollständige CHECK24-Präsentation findest du hier:
 
 👉 [PDF öffnen](docs/BetterCompare_CHECK24.pdf)
+
 ---
 
 ## 🔍 Wie Reviewer testen können
