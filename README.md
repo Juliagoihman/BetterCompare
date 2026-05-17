@@ -39,6 +39,7 @@ The heart ❤️ of the project is the Conformance Engine: it validates every to
 - [🇩🇪 Deutsche Version](#-deutsche-version)
 
 > 👉 **Reviewer? Start here:** [How to Test](#-how-to-test) · [Live Demo](#-live-demo) · [MCP Endpoint](https://bettercompare.dev/mcp)
+---
 
 ## 🚀 Live Demo
 
