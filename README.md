@@ -17,6 +17,7 @@ It was my first time diving deep into the MCP protocol, and I quickly realized h
 The heart ❤️ of the project is the Conformance Engine: it validates every tool against structured rules and gives vertical teams concrete, actionable feedback. It is not just a rejection, but a clear "here's the problem, and here's how to fix it." That part was especially satisfying to build.
 
 ![Check24 Screenshot](docs/screenshots/Check24.png)
+
 ---
 
 ## 🚀 Live Demo
@@ -117,9 +118,8 @@ BetterCompare/
 
 ### Single ChatGPT-facing Proxy MCP
 - Exactly one MCP endpoint: `POST https://bettercompare.dev/mcp`
-- Built with the official Python MCP SDK using **Streamable HTTP** (MCP standard since March 2025)
+- The proxy implements the MCP JSON-RPC protocol directly, giving full control over tool aggregation, routing, and conformance — while all vertical backends use the official MCP Python SDK with Streamable HTTP
 - All verticals hidden behind the proxy
-- Proxy handles: tool aggregation, routing, conformance, feedback
 - Transport layer deliberately decoupled from business logic — another MCP host (e.g. Claude) could reuse the core
 
 → Full details: [docs/EN_01_overview.md](docs/EN_01_overview.md)
@@ -181,28 +181,9 @@ Each violation includes a `fix` field — vertical teams know exactly what to ch
 → Full versioning details: [docs/EN_03_versioning.md](docs/EN_03_versioning.md)
 
 ### Feedback to Verticals
-`GET /feedback?vertical=insurance` returns:
+`GET /feedback?vertical=insurance` returns structured feedback with a `fix` field — teams know exactly what to change, not just that something is wrong.
 
-```json
-{
-  "vertical": "insurance",
-  "score": 87,
-  "tools": [
-    {
-      "tool": "get_insurance_quote",
-      "status": "adapted",
-      "violations": [
-        {
-          "rule_id": "MISSING_DESCRIPTION",
-          "severity": "WARNING",
-          "reason": "Tool has no meaningful description",
-          "fix": "Add a description of at least 10 characters"
-        }
-      ]
-    }
-  ]
-}
-```
+→ Full feedback details: [docs/EN_02_conformance.md](docs/EN_02_conformance.md)
 
 ---
 
@@ -333,7 +314,6 @@ Every tool call gets a `correlation_id` with per-step latency:
   "tool_name": "internet__compare_internet_offers",
   "total_ms": 142,
   "steps": [
-    {"name": "conformance", "at_ms": 4},
     {"name": "vertical_call", "at_ms": 11}
   ],
   "status": "ok"
@@ -403,9 +383,9 @@ Deployed at: **https://bettercompare.dev**
 
 **Stability over Flexibility**: The proxy absorbs breaking changes so ChatGPT remains stable after review approval.
 
-**Separation of Concerns**: MCP protocol layer is separate from platform logic (conformance, routing, monitoring) so the core could be reused with other MCP-compatible hosts like Claude.
+**Separation of Concerns**: The MCP protocol layer is separate from platform logic (conformance, routing, monitoring) so the core could be reused with other MCP-compatible hosts like Claude.
 
-**Real MCP, not REST**: Built with the official Python MCP SDK using Streamable HTTP — not a JSON-RPC wrapper.
+**MCP protocol, not REST**: The proxy implements the MCP JSON-RPC protocol directly for the ChatGPT-facing endpoint, giving full control over aggregation and routing. The vertical backends use the official MCP Python SDK with Streamable HTTP — so both sides speak real MCP.
 
 ---
 
@@ -461,13 +441,14 @@ I'm happy to answer any questions about the project and welcome any feedback.
 
 Vielen Dank, dass du dir die Zeit nimmst, mein Projekt für das CHECK24 GenDev Stipendium anzuschauen.
 
-Die Challenge hat mich von Anfang an gepackt: Wie bringt man mehrere unabhängige APIs so zusammen, dass ein KI-Modell wie ChatGPT sie sauber und zuverlässig nutzen kann — ohne Chaos, Namenskonflikte oder blinde Flecken? Genau das wollte ich mit BetterCompare lösen: ein ChatGPT-nativer MCP-Proxy, der mehrere CHECK24-Vergleichsverticals in einer einzigen, einheitlichen Schnittstelle aggregiert, die durch eine Conformance Engine unterstützt ist und ein Live-Monitoring und ein strukturiertes Entwickler-Feedback zeigt.
+Die Challenge hat mich von Anfang an gepackt: Wie bringt man mehrere unabhängige APIs so zusammen, dass ein KI-Modell wie ChatGPT sie sauber und zuverlässig nutzen kann — ohne Chaos, Namenskonflikte oder blinde Flecken? Genau das wollte ich mit BetterCompare lösen: ein ChatGPT-nativer MCP-Proxy, der mehrere CHECK24-Vergleichsverticals in einer einzigen, einheitlichen Schnittstelle aggregiert — unterstützt durch eine Conformance Engine, Live-Monitoring und strukturiertes Entwickler-Feedback.
 
-Es war das erste Mal, dass ich tief in das MCP-Protokoll eingetaucht bin, und ich habe schnell gemerkt, wie viel Sorgfalt es braucht, Tools wirklich ChatGPT-tauglich zu machen: klare Beschreibungen, konsistente Schemas, aussagekräftige Fehlermeldungen. Was auf den ersten Blick wie ein einfaches Routing-Problem wirkt, wird schnell zur Frage von Architektur und Vertrauen. Der Proxy muss als zuverlässiger Gatekeeper funktionieren, nicht nur als Weiterleitung.
+Es war das erste Mal, dass ich tief in das MCP-Protokoll eingetaucht bin, und ich habe schnell gemerkt, wie viel Sorgfalt es braucht, Tools wirklich ChatGPT-tauglich zu machen: klare Beschreibungen, konsistente Schemas, aussagekräftige Fehlermeldungen. Was auf den ersten Blick wie ein einfaches Routing-Problem wirkt, wird schnell zur Frage von Architektur und Vertrauen — der Proxy muss als zuverlässiger Gatekeeper funktionieren, nicht nur als Durchleitung.
 
-Das Herzstück ❤️ des Projekts ist die Conformance Engine: Sie prüft jedes Tool gegen strukturierte Regeln und gibt Vertical-Teams konkretes, umsetzbares Feedback. Kein stilles Blockieren — sondern ein klares "Hier ist das Problem, und so kannst du es lösen." Diesen Teil zu bauen war besonders lehrreich.
+Das Herzstück ❤️ des Projekts ist die Conformance Engine: Sie prüft jedes Tool gegen strukturierte Regeln und gibt Vertical-Teams konkretes, umsetzbares Feedback. Kein stilles Blockieren — sondern ein klares "Hier ist das Problem, und so kannst du es lösen." Diesen Teil zu bauen war besonders befriedigend.
 
 ![Check24 Screenshot](docs/screenshots/Check24.png)
+
 ---
 
 ## 🚀 Live Demo
@@ -525,11 +506,44 @@ https://bettercompare.dev/dashboard
 
 ---
 
+## 📁 Repository-Struktur
+
+```
+BetterCompare/
+├── proxy/
+│   ├── main.py                  ← MCP-Proxy-Kern
+│   ├── requirements.txt
+│   ├── conformance/
+│   │   └── engine.py            ← Regelwerk (Schema, Safety, Naming, UX)
+│   ├── monitoring/
+│   │   ├── tracer.py            ← Request-Tracing mit Correlation-IDs
+│   │   ├── stats.py             ← Metriken pro Vertical
+│   │   └── session_store.py     ← Session-Level Tool-Nutzung
+│   ├── feedback/
+│   │   └── store.py             ← Umsetzbares Feedback pro Vertical-Team
+│   ├── catalog/
+│   │   └── versions.py          ← Versioning + Breaking-Change-Erkennung
+│   ├── dashboard/
+│   │   ├── index.html           ← Live-Dashboard + Widget Sandbox
+│   │   └── BetterCompare.png    ← Logo
+│   └── verticals/
+│       ├── internet/main.py     ← Port 8801
+│       ├── mobile/main.py       ← Port 8802
+│       ├── travel/main.py       ← Port 8803
+│       └── insurance/main.py    ← Port 8804
+├── docs/                        ← Ausführliche Dokumentation
+├── Dockerfile
+├── start.sh
+└── privacy.md
+```
+
+---
+
 ## ✅ Anforderungen der Challenge
 
 ### Einzelner ChatGPT-seitiger Proxy MCP
 - Genau ein MCP-Endpoint: `POST https://bettercompare.dev/mcp`
-- Gebaut mit dem offiziellen Python MCP SDK und **Streamable HTTP** (MCP-Standard seit März 2025)
+- Der Proxy implementiert das MCP JSON-RPC Protokoll direkt für volle Kontrolle über Aggregation, Routing und Conformance — die Vertical-Backends nutzen das offizielle MCP Python SDK mit Streamable HTTP
 - Alle Verticals hinter dem Proxy versteckt
 - Transport-Layer bewusst von Business-Logik getrennt — ein anderer MCP-Host (z.B. Claude) könnte den Kern wiederverwenden
 
@@ -596,10 +610,45 @@ Internet   Mobile     Travel   Insurance
 
 ---
 
+## 🔌 API-Referenz
+
+| Endpoint | Methode | Beschreibung |
+|---|---|---|
+| `/mcp` | POST | MCP-Endpoint für ChatGPT |
+| `/mcp?vertical=internet` | POST | QA-Modus — nur Internet-Tools |
+| `/health` | GET | Erreichbarkeit der Verticals |
+| `/catalog` | GET | Vollständiger Tool-Katalog |
+| `/feedback` | GET | Conformance-Feedback (alle Verticals) |
+| `/feedback?vertical=X` | GET | Feedback für ein Vertical |
+| `/traces` | GET | Aktuelle Tool-Call-Traces |
+| `/stats` | GET | Aggregierte Metriken |
+| `/sessions` | GET | Session-Level Tool-Nutzung |
+| `/versions` | GET | Versions-Manifest |
+| `/versions/check?vertical=X` | GET | Per-Vertical Versions-Status |
+| `/dashboard` | GET | Live-Dashboard + Widget Sandbox |
+| `/validate` | POST | Dry-Run Conformance-Check |
+| `/reload` | POST | Tool-Cache invalidieren |
+| `/openapi-schema` | GET | OpenAPI Schema für ChatGPT Actions |
+
+### Per-Vertical QA-Modus
+
+```bash
+# Via Query-Parameter
+POST https://bettercompare.dev/mcp?vertical=internet
+
+# Via Header
+POST https://bettercompare.dev/mcp
+x-vertical: internet
+```
+
+Warum Query-Param statt separaten Deployments? Keine Infrastruktur-Änderungen, gleiche Connector-URL, per Request ein- und ausschaltbar.
+
+---
+
 ## ⭐ Optionale Features
 
 ### Cross-Vertical Namespacing
-Alle Tools als `vertical__tool_name` — verhindert Namenskonflikte.
+Alle Tools als `vertical__tool_name` — verhindert Namenskonflikte zwischen Verticals.
 
 ### Live Monitoring Dashboard + KI-Assistent
 
@@ -613,10 +662,11 @@ Alle Tools als `vertical__tool_name` — verhindert Namenskonflikte.
 
 `https://bettercompare.dev/dashboard` → Widget Sandbox Tab — Tools isoliert testen über denselben Proxy-Pfad den ChatGPT nutzt.
 
-→ Vollständige Details: [docs/DE_02_conformance_versioning_qa.md](docs/DE_02_conformance_versioning_qa.md)
-
 ### Session-Level Insights & Structured Tracing
 Jeder Tool-Aufruf bekommt eine `correlation_id`. Sessions tracken Tool-Nutzung über ein Gespräch hinweg.
+
+### Dry-Run Validator
+`POST /validate` — Tool-Definitionen vor dem Deployment prüfen, ohne den Live-Katalog zu berühren.
 
 ---
 
@@ -625,7 +675,23 @@ Jeder Tool-Aufruf bekommt eine `correlation_id`. Sessions tracken Tool-Nutzung �
 - **Tool-Exposition**: Conformance blockiert Admin/Debug-Tools
 - **Input-Validierung**: JSON Schema bei jedem Tool-Call
 - **Trust Boundaries**: Produktion würde mTLS zwischen Proxy und Verticals verwenden
+- **Keine Auth am Proxy**: Korrekt für Developer/Connector Mode
 - **Was als nächstes gehärtet werden sollte**: Rate Limiting, Circuit Breakers, Audit Logging
+
+---
+
+## ☁️ Deployment
+
+Läuft als einzelner Docker-Container auf Railway:
+
+```bash
+# Lokal
+docker build -t bettercompare .
+docker run -p 8787:8787 bettercompare
+
+# Deployed unter
+https://bettercompare.dev
+```
 
 ---
 
@@ -636,10 +702,11 @@ Jeder Tool-Aufruf bekommt eine `correlation_id`. Sessions tracken Tool-Nutzung �
 | Trace-Speicherung | In-Memory | ClickHouse / Redis |
 | Vertical-Auth | Keine | mTLS |
 | Ambiguity Resolution | Namespacing | ML Intent Classifier |
+| Conformance-Scoring | Heuristische Regeln | ML-gestützt |
 
 ---
 
-## 🧠 Key Design Decisions
+## 🧠 Wichtige Design-Entscheidungen
 
 **Proxy als Gatekeeper** — strukturiertes Feedback statt stiller Ablehnung.
 
@@ -647,13 +714,15 @@ Jeder Tool-Aufruf bekommt eine `correlation_id`. Sessions tracken Tool-Nutzung �
 
 **Stabilität über Flexibilität** — Proxy absorbiert Breaking Changes damit ChatGPT nach dem Review stabil bleibt.
 
-**Separation of Concerns** — Transport-Layer getrennt von Business-Logik, wiederverwendbar mit jedem MCP-Host.
+**Separation of Concerns** — Protokoll-Layer getrennt von Business-Logik, wiederverwendbar mit jedem MCP-Host.
+
+**MCP-Protokoll, kein REST** — Der Proxy implementiert das MCP JSON-RPC Protokoll direkt für den ChatGPT-seitigen Endpoint. Die Vertical-Backends nutzen das offizielle MCP Python SDK — beide Seiten sprechen echtes MCP.
 
 ---
 
 ## 🎓 Learnings & Reflexionen
 
-**MCP ist mehr als ein Protokoll** — erst beim Bauen mit dem echten SDK wurde klar warum Streamable HTTP und Tool-Schemas so präzise spezifiziert sind.
+**MCP ist mehr als ein Protokoll** — erst beim Bauen wurde klar warum Tool-Schemas so präzise spezifiziert sind.
 
 **Conformance ist ein Produkt-Problem** — die richtigen Regeln zu definieren war schwieriger als die Engine zu bauen.
 
@@ -685,8 +754,6 @@ Ich beantworte gerne Fragen zum Projekt und freue mich über jedes Feedback.
 *Made with ❤️ by Julia Goihman*
 
 *GenDev9 – CHECK24 ChatGPT App Challenge*
-
-   
 
 
 
