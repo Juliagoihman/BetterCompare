@@ -1,6 +1,6 @@
 # GenDev9 – CHECK24 ChatGPT App Challenge
 **BetterCompare – One Search. Every Comparison.**
-[🎥 Demo Video](#) · [📊 Dashboard](https://bettercompare.dev/dashboard) · [🌐 MCP Endpoint](https://bettercompare.dev/mcp) · [🧪 Widget Sandbox](https://bettercompare.dev/dashboard)
+[🎥 Demo Video](#) · [📊 Dashboard](https://bettercompare.dev/dashboard)  · [🧪 Widget Sandbox](https://bettercompare.dev/dashboard)
 
 > 🇩🇪 **Deutsche Version** weiter unten / German version below
 
@@ -38,14 +38,13 @@ The heart ❤️ of the project is the Conformance Engine: it validates every to
 - [📚 Documentation](#-documentation)
 - [🇩🇪 Deutsche Version](#-deutsche-version)
 
-> 👉 **Reviewer? Start here:** [How to Test](#-how-to-test) · [Live Demo](#-live-demo) · [MCP Endpoint](https://bettercompare.dev/mcp)
+> 👉 **Reviewer? Start here:** [How to Test](#-how-to-test) · [Live Demo](#-live-demo) 
 ---
 
 ## 🚀 Live Demo
 
 | Service | URL |
 |---|---|
-| 🌐 Proxy MCP Endpoint | https://bettercompare.dev/mcp |
 | 📊 Monitoring Dashboard | https://bettercompare.dev/dashboard |
 | 🧪 Widget Sandbox | https://bettercompare.dev/dashboard (Sandbox Tab) |
 | 🔍 OpenAPI Schema | https://bettercompare.dev/openapi-schema |
@@ -54,6 +53,7 @@ The heart ❤️ of the project is the Conformance Engine: it validates every to
 | 🔢 Versions | https://bettercompare.dev/versions |
 | 📡 Traces | https://bettercompare.dev/traces |
 | ❤️ Health | https://bettercompare.dev/health |
+| 🌐 Proxy MCP Endpoint | https://bettercompare.dev/mcp |
 
 > ⚠️ ChatGPT connects **only** to the proxy MCP. All vertical MCPs run internally and are never exposed directly.
 
@@ -453,7 +453,7 @@ I'm happy to answer any questions about the project and welcome any feedback.
 
 # GenDev9 – CHECK24 ChatGPT App Challenge
 **BetterCompare – Eine Suche. Alle Vergleiche.**
-[🎥 Demo Video](#) · [📊 Dashboard](https://bettercompare.dev/dashboard) · [🌐 MCP Endpoint](https://bettercompare.dev/mcp) · [🧪 Widget Sandbox](https://bettercompare.dev/dashboard)
+[🎥 Demo Video](#) · [📊 Dashboard](https://bettercompare.dev/dashboard) · [🧪 Widget Sandbox](https://bettercompare.dev/dashboard)
 
 ---
 
@@ -487,14 +487,13 @@ Das Herzstück ❤️ des Projekts ist die Conformance Engine: Sie prüft jedes 
 - [🎓 Learnings & Reflexionen](#-learnings--reflexionen)
 - [📚 Dokumentation](#-dokumentation-1)
 
-> 👉 **Reviewer? Hier starten:** [Wie testen](#-wie-reviewer-testen-können) · [Live Demo](#-live-demo-1) · [MCP Endpoint](https://bettercompare.dev/mcp)
+> 👉 **Reviewer? Hier starten:** [Wie testen](#-wie-reviewer-testen-können) · [Live Demo](#-live-demo-1) 
 ---
 
 ## 🚀 Live Demo
 
 | Service | URL |
 |---|---|
-| 🌐 Proxy MCP Endpoint | https://bettercompare.dev/mcp |
 | 📊 Monitoring Dashboard | https://bettercompare.dev/dashboard |
 | 🧪 Widget Sandbox | https://bettercompare.dev/dashboard (Sandbox Tab) |
 | 🔍 OpenAPI Schema | https://bettercompare.dev/openapi-schema |
@@ -503,6 +502,7 @@ Das Herzstück ❤️ des Projekts ist die Conformance Engine: Sie prüft jedes 
 | 🔢 Versionen | https://bettercompare.dev/versions |
 | 📡 Traces | https://bettercompare.dev/traces |
 | ❤️ Health | https://bettercompare.dev/health |
+| 🌐 Proxy MCP Endpoint | https://bettercompare.dev/mcp |
 
 > ⚠️ ChatGPT verbindet sich **ausschließlich** mit dem Proxy-MCP. Alle Vertical-MCPs laufen intern und werden niemals direkt exponiert.
 
