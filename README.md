@@ -1,24 +1,11 @@
 # GenDev9 – CHECK24 ChatGPT App Challenge
 **BetterCompare – One Search. Every Comparison.**
-[🎥 Demo Video](#) · [📊 Dashboard](https://bettercompare.dev/dashboard)  · [🧪 Widget Sandbox](https://bettercompare.dev/dashboard)
+[🎥 Demo Video](#) · [📊 Dashboard](https://bettercompare.dev/dashboard) · [🌐 MCP Endpoint](https://bettercompare.dev/mcp) · [🧪 Widget Sandbox](https://bettercompare.dev/dashboard)
 
 > 🇩🇪 **Deutsche Version** weiter unten / German version below
 
 ---
 
-## Intro
-
-Thank you for taking the time to look at my project for the CHECK24 GenDev Scholarship.
-
-The challenge grabbed me from the start: how do you bring multiple independent APIs together in a way that an AI model like ChatGPT can use them cleanly and reliably without chaos, naming conflicts, or blind spots? That's exactly what I set out to solve with BetterCompare, a ChatGPT-native MCP proxy that aggregates multiple CHECK24 comparison verticals into a single unified interface, powered by a conformance engine, live monitoring, and structured developer feedback.
-
-It was my first time diving deep into the MCP protocol, and I quickly realized how much care it takes to make tools truly ChatGPT-ready: clear descriptions, consistent schemas, meaningful error messages. What looks like a simple routing problem at first glance turns into a question of architecture and trust as the proxy needs to work as a reliable gatekeeper, not just a pass-through.
-
-The heart ❤️ of the project is the Conformance Engine: it validates every tool against structured rules and gives vertical teams concrete, actionable feedback. It is not just a rejection, but a clear "here's the problem, and here's how to fix it." That part was especially satisfying to build.
-
-![Check24 Screenshot](docs/screenshots/Check24.png)
-
----
 ## 📋 Table of Contents
 
 - [Intro](#intro)
@@ -38,13 +25,29 @@ The heart ❤️ of the project is the Conformance Engine: it validates every to
 - [📚 Documentation](#-documentation)
 - [🇩🇪 Deutsche Version](#-deutsche-version)
 
-> 👉 **Reviewer? Start here:** [How to Test](#-how-to-test) · [Live Demo](#-live-demo) 
+> 👉 **Reviewer? Start here:** [How to Test](#-how-to-test) · [Live Demo](#-live-demo) · [MCP Endpoint](https://bettercompare.dev/mcp)
+
+---
+
+## Intro
+
+Thank you for taking the time to look at my project for the CHECK24 GenDev Scholarship.
+
+The challenge grabbed me from the start: how do you bring multiple independent APIs together in a way that an AI model like ChatGPT can use them cleanly and reliably without chaos, naming conflicts, or blind spots? That's exactly what I set out to solve with BetterCompare, a ChatGPT-native MCP proxy that aggregates multiple CHECK24 comparison verticals into a single unified interface, powered by a conformance engine, live monitoring, and structured developer feedback.
+
+It was my first time diving deep into the MCP protocol, and I quickly realized how much care it takes to make tools truly ChatGPT-ready: clear descriptions, consistent schemas, meaningful error messages. What looks like a simple routing problem at first glance turns into a question of architecture and trust as the proxy needs to work as a reliable gatekeeper, not just a pass-through.
+
+The heart ❤️ of the project is the Conformance Engine: it validates every tool against structured rules and gives vertical teams concrete, actionable feedback. It is not just a rejection, but a clear "here's the problem, and here's how to fix it." That part was especially satisfying to build.
+
+![Check24 Screenshot](docs/screenshots/Check24.png)
+
 ---
 
 ## 🚀 Live Demo
 
 | Service | URL |
 |---|---|
+| 🌐 Proxy MCP Endpoint | https://bettercompare.dev/mcp |
 | 📊 Monitoring Dashboard | https://bettercompare.dev/dashboard |
 | 🧪 Widget Sandbox | https://bettercompare.dev/dashboard (Sandbox Tab) |
 | 🔍 OpenAPI Schema | https://bettercompare.dev/openapi-schema |
@@ -53,7 +56,6 @@ The heart ❤️ of the project is the Conformance Engine: it validates every to
 | 🔢 Versions | https://bettercompare.dev/versions |
 | 📡 Traces | https://bettercompare.dev/traces |
 | ❤️ Health | https://bettercompare.dev/health |
-| 🌐 Proxy MCP Endpoint | https://bettercompare.dev/mcp |
 
 > ⚠️ ChatGPT connects **only** to the proxy MCP. All vertical MCPs run internally and are never exposed directly.
 
@@ -74,7 +76,6 @@ The video covers:
 ---
 
 ## 🔍 How to Test
-![MCP Inspector](docs/screenshots/MCP_Inspector.png)
 
 ```bash
 # 1. Check vertical health
@@ -92,6 +93,10 @@ https://bettercompare.dev/dashboard
 # 5. Test any tool in the Widget Sandbox
 https://bettercompare.dev/dashboard → Widget Sandbox Tab → Select tool → Run
 ```
+
+![MCP Inspector — Connected with 14 tools](docs/screenshots/MCP_Inspector.png)
+
+![Health Check — all verticals reachable](docs/screenshots/health.png)
 
 ---
 
@@ -145,7 +150,8 @@ BetterCompare/
 → Full details: [docs/EN_01_overview.md](docs/EN_01_overview.md)
 
 ### Vertical MCPs (Mocked)
-4 independent MCP servers, each owning their own tools:
+- [x] 4 independent MCP servers, each owning their own tools and schemas
+- [x] Internet, Mobile, Travel, Insurance — each with real FastMCP Streamable HTTP transport
 
 | Vertical | Tools | Port |
 |---|---|---|
@@ -155,6 +161,10 @@ BetterCompare/
 | Insurance | compare_insurance_plans, get_insurance_quote, list_insurance_types | 8804 |
 
 ### Conformance Engine
+- [x] Every tool evaluated before exposure
+- [x] `fix` field gives teams exactly what to change
+- [x] Policy v1 (lenient) and v2 (strict)
+
 Every tool is evaluated against structured rules before exposure:
 
 ```json
@@ -169,11 +179,14 @@ Every tool is evaluated against structured rules before exposure:
 
 Rules are grouped into: `schema`, `safety`, `naming`, `ux`
 
-Each violation includes a `fix` field — vertical teams know exactly what to change.
+![Conformance Feedback](docs/screenshots/feedback.png)
 
 → Full conformance details: [docs/EN_02_conformance.md](docs/EN_02_conformance.md)
 
 ### Versioning
+- [x] Explicit version per component
+- [x] Breaking change detection automatic
+- [x] Who does the work when something changes documented
 
 ```json
 {
@@ -186,9 +199,7 @@ Each violation includes a `fix` field — vertical teams know exactly what to ch
 }
 ```
 
-- Breaking change detection (new required params, type changes)
-- `GET /versions` — full version manifest
-- `GET /versions/check?vertical=insurance` — per-vertical status
+![Versions](docs/screenshots/versions.png)
 
 **Who does the work when something changes?**
 
@@ -201,6 +212,9 @@ Each violation includes a `fix` field — vertical teams know exactly what to ch
 → Full versioning details: [docs/EN_03_versioning.md](docs/EN_03_versioning.md)
 
 ### Feedback to Verticals
+- [x] `GET /feedback?vertical=X` returns structured feedback
+- [x] No silent blocking — always with fix suggestion
+
 `GET /feedback?vertical=insurance` returns structured feedback with a `fix` field — teams know exactly what to change, not just that something is wrong.
 
 → Full feedback details: [docs/EN_02_conformance.md](docs/EN_02_conformance.md)
@@ -257,6 +271,8 @@ Internet   Mobile     Travel   Insurance
 | `/reload` | POST | Invalidate tool cache |
 | `/openapi-schema` | GET | OpenAPI schema for ChatGPT Actions |
 
+![Catalog — all 14 tools](docs/screenshots/catalog.png)
+
 ### Per-Vertical QA Mode
 ```bash
 # Via query param
@@ -303,6 +319,8 @@ Shows:
 - Top tools by usage
 - **AI Assistant** — ask BetterCompare anything in natural language, it routes to the right vertical tool automatically
 
+![AI Assistant](docs/screenshots/ai_assistant.png)
+
 ### 🧪 Widget Sandbox
 
 ![Widget Sandbox](docs/screenshots/sandbox.png)
@@ -339,6 +357,8 @@ Every tool call gets a `correlation_id` with per-step latency:
   "status": "ok"
 }
 ```
+
+![Traces](docs/screenshots/traces.png)
 
 → Full monitoring details: [docs/EN_04_qa_monitoring.md](docs/EN_04_qa_monitoring.md)
 
@@ -438,7 +458,7 @@ Full documentation in the `docs/` folder:
 
 ## Outro
 
-I hope BetterCompare demonstrates how I approach complex architecture problems: with a focus on robustness, clear feedback for other participants, and a system that holds up cleanly under real conditions.
+I hope BetterCompare demonstrates how I approach complex architecture problems: with a focus on robustness, clear feedback for other teams, and a system that holds up cleanly under real conditions.
 
 I'm happy to answer any questions about the project and welcome any feedback.
 
@@ -453,21 +473,9 @@ I'm happy to answer any questions about the project and welcome any feedback.
 
 # GenDev9 – CHECK24 ChatGPT App Challenge
 **BetterCompare – Eine Suche. Alle Vergleiche.**
-[🎥 Demo Video](#) · [📊 Dashboard](https://bettercompare.dev/dashboard) · [🧪 Widget Sandbox](https://bettercompare.dev/dashboard)
+[🎥 Demo Video](#) · [📊 Dashboard](https://bettercompare.dev/dashboard) · [🌐 MCP Endpoint](https://bettercompare.dev/mcp) · [🧪 Widget Sandbox](https://bettercompare.dev/dashboard)
 
 ---
-
-## Einleitung
-
-Vielen Dank, dass du dir die Zeit nimmst, mein Projekt für das CHECK24 GenDev Stipendium anzuschauen.
-
-Die Challenge hat mich von Anfang an gepackt: Wie bringt man mehrere unabhängige APIs so zusammen, dass ein KI-Modell wie ChatGPT sie sauber und zuverlässig nutzen kann — ohne Chaos, Namenskonflikte oder blinde Flecken? Genau das wollte ich mit BetterCompare lösen: ein ChatGPT-nativer MCP-Proxy, der mehrere CHECK24-Vergleichsverticals in einer einzigen, einheitlichen Schnittstelle aggregiert — unterstützt durch eine Conformance Engine, Live-Monitoring und strukturiertes Entwickler-Feedback.
-
-Es war das erste Mal, dass ich tief in das MCP-Protokoll eingetaucht bin, und ich habe schnell gemerkt, wie viel Sorgfalt es braucht, Tools wirklich ChatGPT-tauglich zu machen: klare Beschreibungen, konsistente Schemas, aussagekräftige Fehlermeldungen. Was auf den ersten Blick wie ein einfaches Routing-Problem wirkt, wird schnell zur Frage von Architektur und Vertrauen — der Proxy muss als zuverlässiger Gatekeeper funktionieren, nicht nur als Durchleitung.
-
-Das Herzstück ❤️ des Projekts ist die Conformance Engine: Sie prüft jedes Tool gegen strukturierte Regeln und gibt Vertical-Teams konkretes, umsetzbares Feedback. Kein stilles Blockieren — sondern ein klares "Hier ist das Problem, und so kannst du es lösen." Diesen Teil zu bauen war besonders befriedigend.
-
-![Check24 Screenshot](docs/screenshots/Check24.png)
 
 ## 📋 Inhaltsverzeichnis
 
@@ -487,13 +495,29 @@ Das Herzstück ❤️ des Projekts ist die Conformance Engine: Sie prüft jedes 
 - [🎓 Learnings & Reflexionen](#-learnings--reflexionen)
 - [📚 Dokumentation](#-dokumentation-1)
 
-> 👉 **Reviewer? Hier starten:** [Wie testen](#-wie-reviewer-testen-können) · [Live Demo](#-live-demo-1) 
+> 👉 **Reviewer? Hier starten:** [Wie testen](#-wie-reviewer-testen-können) · [Live Demo](#-live-demo-1) · [MCP Endpoint](https://bettercompare.dev/mcp)
+
+---
+
+## Einleitung
+
+Vielen Dank, dass du dir die Zeit nimmst, mein Projekt für das CHECK24 GenDev Stipendium anzuschauen.
+
+Die Challenge hat mich von Anfang an gepackt: Wie bringt man mehrere unabhängige APIs so zusammen, dass ein KI-Modell wie ChatGPT sie sauber und zuverlässig nutzen kann — ohne Chaos, Namenskonflikte oder blinde Flecken? Genau das wollte ich mit BetterCompare lösen: ein ChatGPT-nativer MCP-Proxy, der mehrere CHECK24-Vergleichsverticals in einer einzigen, einheitlichen Schnittstelle aggregiert — unterstützt durch eine Conformance Engine, Live-Monitoring und strukturiertes Entwickler-Feedback.
+
+Es war das erste Mal, dass ich tief in das MCP-Protokoll eingetaucht bin, und ich habe schnell gemerkt, wie viel Sorgfalt es braucht, Tools wirklich ChatGPT-tauglich zu machen: klare Beschreibungen, konsistente Schemas, aussagekräftige Fehlermeldungen. Was auf den ersten Blick wie ein einfaches Routing-Problem wirkt, wird schnell zur Frage von Architektur und Vertrauen — der Proxy muss als zuverlässiger Gatekeeper funktionieren, nicht nur als Durchleitung.
+
+Das Herzstück ❤️ des Projekts ist die Conformance Engine: Sie prüft jedes Tool gegen strukturierte Regeln und gibt Vertical-Teams konkretes, umsetzbares Feedback. Kein stilles Blockieren — sondern ein klares "Hier ist das Problem, und so kannst du es lösen." Diesen Teil zu bauen war besonders befriedigend.
+
+![Check24 Screenshot](docs/screenshots/Check24.png)
+
 ---
 
 ## 🚀 Live Demo
 
 | Service | URL |
 |---|---|
+| 🌐 Proxy MCP Endpoint | https://bettercompare.dev/mcp |
 | 📊 Monitoring Dashboard | https://bettercompare.dev/dashboard |
 | 🧪 Widget Sandbox | https://bettercompare.dev/dashboard (Sandbox Tab) |
 | 🔍 OpenAPI Schema | https://bettercompare.dev/openapi-schema |
@@ -502,7 +526,6 @@ Das Herzstück ❤️ des Projekts ist die Conformance Engine: Sie prüft jedes 
 | 🔢 Versionen | https://bettercompare.dev/versions |
 | 📡 Traces | https://bettercompare.dev/traces |
 | ❤️ Health | https://bettercompare.dev/health |
-| 🌐 Proxy MCP Endpoint | https://bettercompare.dev/mcp |
 
 > ⚠️ ChatGPT verbindet sich **ausschließlich** mit dem Proxy-MCP. Alle Vertical-MCPs laufen intern und werden niemals direkt exponiert.
 
@@ -523,7 +546,7 @@ Das Video zeigt:
 ---
 
 ## 🔍 Wie Reviewer testen können
-![MCP Inspector](docs/screenshots/MCP_Inspector.png)
+
 ```bash
 # 1. Verticals auf Erreichbarkeit prüfen
 curl https://bettercompare.dev/health
@@ -540,6 +563,11 @@ https://bettercompare.dev/dashboard
 # 5. Tool in der Widget Sandbox testen
 https://bettercompare.dev/dashboard → Widget Sandbox Tab → Tool auswählen → Run
 ```
+
+![MCP Inspector — Verbunden mit 14 Tools](docs/screenshots/MCP_Inspector.png)
+
+![Health Check — alle Verticals erreichbar](docs/screenshots/health.png)
+
 ---
 
 ## 📁 Repository-Struktur
@@ -583,11 +611,11 @@ BetterCompare/
 - [x] Alle Verticals hinter dem Proxy versteckt
 - [x] Transport-Layer bewusst von Business-Logik getrennt — ein anderer MCP-Host (z.B. Claude) könnte den Kern wiederverwenden
 
-
 → Vollständige Details: [docs/DE_01_uebersicht.md](docs/DE_01_uebersicht.md)
 
 ### Vertical MCPs (gemockt)
-4 unabhängige MCP-Server, jeder mit eigenem Tool-Ownership:
+- [x] 4 unabhängige MCP-Server, jeder mit eigenem Tool-Ownership
+- [x] Internet, Mobile, Travel, Insurance — jeweils eigene Tools und Schemas
 
 | Vertical | Tools | Port |
 |---|---|---|
@@ -597,12 +625,20 @@ BetterCompare/
 | Insurance | compare_insurance_plans, get_insurance_quote, list_insurance_types | 8804 |
 
 ### Conformance Engine
-Jedes Tool wird vor der Exposition bewertet. Das `fix`-Feld ist das Kernfeature — Teams wissen genau was zu ändern ist.
+- [x] Jedes Tool vor Exposition bewertet
+- [x] `fix`-Feld gibt Teams genau an was zu ändern ist
+- [x] Policy v1 (nachsichtig) und v2 (streng)
+
+![Conformance Feedback](docs/screenshots/feedback.png)
 
 → Vollständige Details: [docs/DE_02_conformance_versioning_qa.md](docs/DE_02_conformance_versioning_qa.md)
 
 ### Versioning
-Jede Komponente hat eine explizite Version. Der Proxy erkennt Breaking Changes automatisch.
+- [x] Explizite Version pro Komponente
+- [x] Breaking-Change-Erkennung automatisch
+- [x] Wer macht was bei Änderungen dokumentiert
+
+![Versions](docs/screenshots/versions.png)
 
 **Wer macht was bei einer Änderung?**
 
@@ -615,7 +651,8 @@ Jede Komponente hat eine explizite Version. Der Proxy erkennt Breaking Changes a
 → Vollständige Details: [docs/DE_02_conformance_versioning_qa.md](docs/DE_02_conformance_versioning_qa.md)
 
 ### Feedback an Verticals
-Das `fix`-Feld gibt Teams genau an was zu ändern ist — kein stilles Blockieren.
+- [x] `GET /feedback?vertical=X` gibt strukturiertes Feedback
+- [x] Kein stilles Blockieren — immer mit Fix-Vorschlag
 
 ---
 
@@ -667,6 +704,8 @@ Internet   Mobile     Travel   Insurance
 | `/reload` | POST | Tool-Cache invalidieren |
 | `/openapi-schema` | GET | OpenAPI Schema für ChatGPT Actions |
 
+![Catalog — alle 14 Tools](docs/screenshots/catalog.png)
+
 ### Per-Vertical QA-Modus
 
 ```bash
@@ -677,8 +716,6 @@ POST https://bettercompare.dev/mcp?vertical=internet
 POST https://bettercompare.dev/mcp
 x-vertical: internet
 ```
-
-Warum Query-Param statt separaten Deployments? Keine Infrastruktur-Änderungen, gleiche Connector-URL, per Request ein- und ausschaltbar.
 
 ---
 
@@ -693,6 +730,8 @@ Alle Tools als `vertical__tool_name` — verhindert Namenskonflikte zwischen Ver
 
 `https://bettercompare.dev/dashboard` — zeigt Health, Conformance, Traces, Sessions, Top Tools und einen KI-Assistenten der natürlichsprachliche Fragen automatisch ans richtige Vertical weiterleitet.
 
+![AI Assistant](docs/screenshots/ai_assistant.png)
+
 ### 🧪 Widget Sandbox
 
 ![Widget Sandbox](docs/screenshots/sandbox.png)
@@ -700,6 +739,9 @@ Alle Tools als `vertical__tool_name` — verhindert Namenskonflikte zwischen Ver
 `https://bettercompare.dev/dashboard` → Widget Sandbox Tab — Tools isoliert testen über denselben Proxy-Pfad den ChatGPT nutzt.
 
 ### Session-Level Insights & Structured Tracing
+
+![Traces](docs/screenshots/traces.png)
+
 Jeder Tool-Aufruf bekommt eine `correlation_id`. Sessions tracken Tool-Nutzung über ein Gespräch hinweg.
 
 ### Dry-Run Validator
@@ -784,13 +826,11 @@ https://bettercompare.dev
 
 ## Outro
 
-Ich hoffe, BetterCompare zeigt, wie ich komplexe Architektur-Probleme angehe: mit Fokus auf Robustheit, klarem Feedback für andere Teilnehmer und einem System das unter realen Bedingungen standhält.
+Ich hoffe, BetterCompare zeigt, wie ich komplexe Architektur-Probleme angehe: mit Fokus auf Robustheit, klarem Feedback für andere Teams und einem System das unter realen Bedingungen standhält.
 
 Ich beantworte gerne Fragen zum Projekt und freue mich über jedes Feedback.
 
 *Made with ❤️ by Julia Goihman*
 
 *GenDev9 – CHECK24 ChatGPT App Challenge*
-
-
 
